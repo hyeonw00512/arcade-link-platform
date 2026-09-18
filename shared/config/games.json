@@ -13,7 +13,9 @@
     "featured": true,
     "route": "/games/neon-dice",
     "serverModule": "neon-dice",
-    "playUrl": "https://las-vegas-board-game.onrender.com"
+    "playUrl": "https://las-vegas-board-game.onrender.com",
+    "statusUrl": "https://las-vegas-board-game.onrender.com/api/platform/rooms",
+    "capabilities": { "canSpectate": true, "canReserveNextRound": false }
   },
   {
     "id": "moon-yut",
