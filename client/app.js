@@ -13,7 +13,7 @@ const EVENTS = {
 
 const ICONS = { dice: '⚄', yut: '✦', words: 'Aa', mine: '⛏' };
 const PROFILE_AVATARS = ['🦊', '🐼', '🐯', '🐸', '🐙', '🦄', '🐧', '🐨'];
-const state = { session: null, games: [], room: null, inviteUrl: '', selectedGame: null, connected: false, recentGames: [], liveRooms: [] };
+const state = { session: null, games: [], room: null, inviteUrl: '', selectedGame: null, connected: false, liveRooms: [] };
 const app = document.querySelector('#app');
 const toastNode = document.querySelector('#toast');
 const socket = io({ autoConnect: true, reconnection: true, reconnectionDelayMax: 4000 });
@@ -68,8 +68,6 @@ function gameCard(game) {
 }
 
 function renderHome() {
-  const featured = state.games.filter((game) => game.featured);
-  const recent = state.recentGames.map((entry) => state.games.find((game) => game.id === entry.gameId)).filter(Boolean);
   const liveRooms = state.liveRooms.flatMap((entry) => entry.rooms.map((room) => ({ ...room, game: state.games.find((game) => game.id === entry.gameId) }))).filter((item) => item.game);
   const roomGame = state.room && state.games.find((game) => game.id === state.room.gameType);
   app.innerHTML = shell(`
@@ -77,8 +75,6 @@ function renderHome() {
     ${state.room ? `<section class="section"><div class="section-head"><h2>참여 중인 방</h2></div><div class="resume-card"><div><span class="chip">${state.room.status === 'WAITING' ? '로비 대기 중' : '게임 시작됨'}</span><h3 style="margin-top:12px">${escapeHtml(roomGame?.name || state.room.gameType)}</h3><p class="muted">방 코드 ${state.room.inviteCode} · ${state.room.players.length}/${state.room.maxPlayers}명</p></div><button class="button" data-resume-room>방으로 돌아가기</button></div></section>` : ''}
     <section class="quick-start" aria-label="게임 시작 안내"><div class="quick-start-title"><span aria-hidden="true">✦</span><div><strong>친구와 함께 시작하기</strong><p>게임을 고른 뒤 각 게임 안에서 방을 만들고 초대 링크 또는 방 코드를 공유하세요.</p></div></div><ol><li><span>1</span>게임 선택</li><li><span>2</span>게임방 만들기</li><li><span>3</span>친구 초대</li></ol></section>
     ${liveRooms.length ? `<section class="section"><div class="section-head"><div><p class="eyebrow">LIVE ROOMS</p><h2>지금 참가할 수 있는 방</h2></div><span class="muted">공개 방만 표시</span></div><div class="live-room-list">${liveRooms.map((item) => `<article class="live-room"><div class="game-icon small">${ICONS[item.game.thumbnail] || '◆'}</div><div class="live-room-info"><strong>${escapeHtml(item.game.name)} · ${escapeHtml(item.hostNickname)}의 방</strong><p>${item.playerCount}/${item.maxPlayers}명 · 관전자 ${item.spectatorCount}명 · ${item.status === 'WAITING' ? '대기 중' : '진행 중'}${item.requiresPassword ? ' · 🔒 비밀번호 필요' : ''}</p></div><div class="live-room-actions">${item.canJoin ? `<a class="button secondary" data-play="${item.game.id}" href="${escapeHtml(item.joinUrl)}">참가</a>` : ''}${item.canSpectate ? `<a class="button ghost" data-play="${item.game.id}" href="${escapeHtml(item.joinUrl)}">관전</a>` : ''}${item.canReserveNextRound ? `<a class="button" data-play="${item.game.id}" href="${escapeHtml(item.joinUrl)}">다음 판 예약</a>` : ''}</div></article>`).join('')}</div></section>` : ''}
-    ${recent.length ? `<section class="section"><div class="section-head"><h2>최근 플레이</h2><span class="muted">이 기기 기준</span></div><div class="game-grid">${recent.slice(0, 3).map(gameCard).join('')}</div></section>` : ''}
-    <section class="section"><div class="section-head"><div><p class="eyebrow">PICK OF THE DAY</p><h2>추천 게임</h2></div></div><div class="game-grid">${featured.map(gameCard).join('')}</div></section>
     <section class="section" id="all-games"><div class="section-head"><h2>전체 게임</h2><span class="muted">${state.games.length}개</span></div><div class="game-grid">${state.games.map(gameCard).join('')}</div></section>
   `);
   bindCommon();
@@ -200,7 +196,6 @@ function bindCommon() {
   document.querySelectorAll('[data-link]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); navigate(link.getAttribute('href')); }));
   document.querySelectorAll('[data-games-link]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); goToGames(); }));
   document.querySelectorAll('[data-game]').forEach((button) => button.addEventListener('click', () => navigate(`/games/${button.dataset.game}`)));
-  document.querySelectorAll('[data-play]').forEach((link) => link.addEventListener('click', () => recordGameLaunch(link.dataset.play)));
   document.querySelectorAll('[data-soon]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); toast('다음 단계에서 제공될 기능입니다.'); }));
 }
 
@@ -216,12 +211,6 @@ function goToGames() {
     return;
   }
   scrollToGames();
-}
-
-function recordGameLaunch(gameId) {
-  const next = [{ gameId, playedAt: Date.now() }, ...state.recentGames.filter((item) => item.gameId !== gameId)].slice(0, 6);
-  state.recentGames = next;
-  localStorage.setItem('arcade-link-recent-games', JSON.stringify(next));
 }
 
 async function createRoom(event) {
@@ -296,7 +285,6 @@ async function resumeSession() {
     const saved = JSON.parse(localStorage.getItem('arcade-link-session') || 'null');
     const response = await emit(EVENTS.SESSION_RESUME, { sessionToken: saved?.sessionToken });
     state.session = response.session; state.games = response.games; state.room = response.room; state.connected = true;
-    state.recentGames = JSON.parse(localStorage.getItem('arcade-link-recent-games') || '[]');
     localStorage.setItem('arcade-link-session', JSON.stringify(response.session));
     route();
     fetchLiveRooms();
