@@ -82,6 +82,8 @@
     "featured": true,
     "route": "/games/crown-city",
     "serverModule": "crown-city",
-    "playUrl": "https://citydel-game.onrender.com"
+    "playUrl": "https://citydel-game.onrender.com",
+    "statusUrl": "https://citydel-game.onrender.com/api/platform/rooms",
+    "capabilities": { "canSpectate": true, "canReserveNextRound": false }
   }
 ]
