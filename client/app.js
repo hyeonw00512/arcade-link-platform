@@ -63,7 +63,7 @@ function gameCard(game) {
     <div class="game-icon">${ICONS[game.thumbnail] || '◆'}</div>
     <h3>${escapeHtml(game.name)}</h3><p>${escapeHtml(game.description)}</p>
     <div class="game-meta"><span class="chip">${game.minPlayers}–${game.maxPlayers}명</span>${game.recommendedPlayers ? `<span class="chip">권장 ${game.recommendedPlayers}명</span>` : ''}<span class="chip">모든 기기</span></div>
-    <div class="card-actions">${game.playUrl ? `<a class="button secondary" data-play="${game.id}" href="${escapeHtml(game.playUrl)}" aria-label="${escapeHtml(game.name)} 바로 플레이">바로 플레이 →</a>` : `<button class="button secondary" data-game="${game.id}">게임 보기 →</button>`}</div>
+    <div class="card-actions"><button class="button secondary" data-game="${game.id}">방 목록 보기 →</button></div>
   </article>`;
 }
 
@@ -88,11 +88,13 @@ function renderHome() {
 
 function renderDetail(game) {
   state.selectedGame = game;
+  const liveGame = state.liveRooms.find((entry) => entry.gameId === game.id);
+  const liveRooms = liveGame?.rooms || [];
   app.innerHTML = shell(`
     <header class="topbar"><div><p class="eyebrow">GAME DETAIL</p><h1>${escapeHtml(game.name)}</h1></div><a class="button secondary" href="/" data-link>← 게임 목록</a></header>
     <div class="detail-layout">
       <section class="detail-hero"><div class="detail-symbol">${ICONS[game.thumbnail] || '◆'}</div><p class="eyebrow">${game.gameVersion} · CROSS PLAY</p><h2>${escapeHtml(game.name)}</h2><p class="muted">${escapeHtml(game.description)}</p><div class="game-meta"><span class="chip">${game.minPlayers}–${game.maxPlayers}명</span>${game.recommendedPlayers ? `<span class="chip">권장 ${game.recommendedPlayers}명</span>` : ''}${game.modes ? `<span class="chip">개인전 · 팀전</span>` : ''}<span class="chip">PC · Android · iOS</span></div></section>
-      <aside class="detail-panel"><h2>플레이 시작</h2>${game.playUrl ? `<p class="muted">이미 배포된 게임방으로 바로 이동합니다.</p><a class="button" style="display:block;text-align:center;text-decoration:none" href="${escapeHtml(game.playUrl)}">${escapeHtml(game.name)} 게임방 입장</a>` : `<p class="muted">새 방을 열거나 친구의 방 코드를 입력하세요.</p>
+      <aside class="detail-panel"><h2>플레이 시작</h2>${game.playUrl ? `<p class="muted">공개 방에 참가하거나, 새 게임을 만들어 친구를 초대하세요.</p><a class="button" data-play="${game.id}" style="display:block;text-align:center;text-decoration:none" href="${escapeHtml(game.playUrl)}">새 게임 만들기</a>` : `<p class="muted">새 방을 열거나 친구의 방 코드를 입력하세요.</p>
         <form id="create-room-form" class="stack">
           <div class="field"><label for="maxPlayers">최대 인원</label><select class="input" id="maxPlayers">${Array.from({length: game.maxPlayers - game.minPlayers + 1}, (_, i) => `<option value="${i + game.minPlayers}" ${i + game.minPlayers === game.maxPlayers ? 'selected' : ''}>${i + game.minPlayers}명</option>`).join('')}</select></div>
           <label><input type="checkbox" id="privateRoom"> 비공개 방으로 만들기</label>
@@ -102,9 +104,16 @@ function renderDetail(game) {
         <form id="join-room-form" class="stack"><label class="field" for="joinCode"><span>방 코드</span><input id="joinCode" class="input code" maxlength="6" autocomplete="off" placeholder="ABC123" required></label><button class="button secondary" type="submit">코드로 입장</button></form>`}
       </aside>
     </div>`, 'games');
+  if (game.playUrl) {
+    const roomPanel = document.createElement('section');
+    roomPanel.className = 'section game-room-section';
+    roomPanel.innerHTML = `<div class="section-head"><div><p class="eyebrow">PUBLIC ROOMS</p><h2>참가 가능한 방</h2></div><button class="button ghost" data-refresh-live>새로고침</button></div>${liveGame && !liveGame.available ? '<p class="muted">방 목록을 불러오지 못했습니다. 게임 사이트에서 직접 확인해 주세요.</p>' : liveRooms.length ? `<div class="live-room-list">${liveRooms.map((room) => `<article class="live-room"><div class="live-room-info"><strong>${escapeHtml(room.hostNickname)}의 방</strong><p>${room.playerCount}/${room.maxPlayers}명 · 관전자 ${room.spectatorCount}명 · ${room.status === 'WAITING' ? '대기 중' : '진행 중'}${room.requiresPassword ? ' · 🔒 비밀번호 필요' : ''}</p></div><div class="live-room-actions">${room.canJoin ? `<a class="button secondary" data-play="${game.id}" href="${escapeHtml(room.joinUrl)}">참가</a>` : ''}${room.canSpectate ? `<a class="button ghost" data-play="${game.id}" href="${escapeHtml(room.joinUrl)}">관전</a>` : ''}${room.canReserveNextRound ? `<a class="button" data-play="${game.id}" href="${escapeHtml(room.joinUrl)}">다음 판 예약</a>` : ''}</div></article>`).join('')}</div>` : '<div class="empty-card"><strong>현재 공개된 방이 없습니다.</strong><p class="muted" style="margin:8px 0 0">새 게임을 만들어 친구를 초대해 보세요.</p></div>'}`;
+    document.querySelector('.detail-layout').after(roomPanel);
+  }
   bindCommon();
   document.querySelector('#create-room-form')?.addEventListener('submit', createRoom);
   document.querySelector('#join-room-form')?.addEventListener('submit', joinRoom);
+  document.querySelector('[data-refresh-live]')?.addEventListener('click', fetchLiveRooms);
 }
 
 function renderLobby() {
@@ -299,7 +308,7 @@ async function fetchLiveRooms() {
     const response = await fetch('/api/live-rooms');
     if (!response.ok) throw new Error();
     state.liveRooms = await response.json();
-    if (location.pathname === '/') renderHome();
+    route();
   } catch {
     state.liveRooms = [];
   }
