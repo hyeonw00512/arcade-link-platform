@@ -46,7 +46,9 @@
     "featured": false,
     "route": "/games/echo-words",
     "serverModule": "echo-words",
-    "playUrl": "https://association-match-game.onrender.com"
+    "playUrl": "https://association-match-game.onrender.com",
+    "statusUrl": "https://association-match-game.onrender.com/api/platform/rooms",
+    "capabilities": { "canSpectate": true, "canReserveNextRound": false }
   },
   {
     "id": "sabotaji",
