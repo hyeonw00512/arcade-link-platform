@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: arcade-link-platform
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: SESSION_TTL_DAYS
+        value: 30
+      - key: CLIENT_ORIGIN
+        value: "*"

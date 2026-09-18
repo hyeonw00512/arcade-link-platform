@@ -1,0 +1,23 @@
+{
+  "name": "arcade-link-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PC web and Capacitor-ready realtime multi-game lobby platform",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test test/*.test.js",
+    "test:live": "node scripts/live-smoke.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
