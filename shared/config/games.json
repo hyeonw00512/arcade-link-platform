@@ -62,5 +62,20 @@
     "playUrl": "https://sabotaji.onrender.com",
     "statusUrl": "https://sabotaji.onrender.com/api/platform/rooms",
     "capabilities": { "canSpectate": true, "canReserveNextRound": false }
+  },
+  {
+    "id": "crown-city",
+    "name": "시타델",
+    "description": "도시를 건설하고 역할을 활용해 상대보다 높은 명성을 쌓는 실시간 전략 게임입니다.",
+    "thumbnail": "castle",
+    "minPlayers": 3,
+    "maxPlayers": 7,
+    "supportedDevices": ["web", "android", "ios"],
+    "gameVersion": "0.1.0",
+    "enabled": true,
+    "featured": true,
+    "route": "/games/crown-city",
+    "serverModule": "crown-city",
+    "playUrl": "https://citydel-game.onrender.com"
   }
 ]
