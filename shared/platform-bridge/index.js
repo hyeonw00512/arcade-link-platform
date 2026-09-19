@@ -45,6 +45,7 @@ export function normalizeRoom(room) {
     maxPlayers,
     spectatorCount: Math.max(0, Number(room.spectatorCount) || 0),
     status,
+    visibility: room.visibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC',
     requiresPassword: Boolean(room.requiresPassword),
     canJoin: status === 'WAITING' && playerCount < maxPlayers,
     canSpectate: Boolean(room.capabilities?.canSpectate),
