@@ -54,8 +54,8 @@
   },
   {
     "id": "sabotaji",
-    "name": "깊은갱도",
-    "description": "정체를 숨기고 길을 개척하는 실시간 전략 보드게임입니다.",
+    "name": "사보타지",
+    "description": "광맥을 향해 길을 잇는 탐사대와 이를 방해하는 교란자의 정체 숨기기 전략 게임입니다.",
     "thumbnail": "mine",
     "minPlayers": 3,
     "maxPlayers": 10,
