@@ -197,6 +197,17 @@ function bindCommon() {
   document.querySelectorAll('[data-games-link]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); goToGames(); }));
   document.querySelectorAll('[data-game]').forEach((button) => button.addEventListener('click', () => navigate(`/games/${button.dataset.game}`)));
   document.querySelectorAll('[data-soon]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); toast('다음 단계에서 제공될 기능입니다.'); }));
+  document.querySelectorAll('a[data-play]').forEach((link) => link.addEventListener('click', async (event) => {
+    const roomCode = new URL(link.href).searchParams.get('room');
+    if (!roomCode || !state.session?.sessionToken) return;
+    event.preventDefault();
+    try {
+      const response = await fetch('/api/join-link', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionToken: state.session.sessionToken, gameId: link.dataset.play, roomCode, mode: link.textContent.includes('관전') ? 'SPECTATOR' : 'PLAYER' }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message);
+      location.assign(result.url);
+    } catch (error) { toast(error.message || '자동 입장을 준비하지 못했습니다.'); }
+  }));
 }
 
 function scrollToGames() {

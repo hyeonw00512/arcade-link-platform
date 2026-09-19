@@ -9,6 +9,7 @@ import { RoomService } from './platform/rooms/room-service.js';
 import { registerPlatformEvents } from './platform/socket/register-platform-events.js';
 import { FileStateStore } from './platform/storage/file-state-store.js';
 import { LiveRoomService } from './platform/games/live-room-service.js';
+import { createJoinToken } from './platform/auth/join-token.js';
 
 const clientDir = fileURLToPath(new URL('../client', import.meta.url));
 const games = await loadGameCatalog();
@@ -32,6 +33,19 @@ app.use(express.json({ limit: '32kb' }));
 app.get('/api/health', (_req, res) => res.json({ ok: true, games: games.length }));
 app.get('/api/games', (_req, res) => res.json(games));
 app.get('/api/live-rooms', async (_req, res) => res.json(await liveRooms.list(games)));
+app.post('/api/join-link', (req, res) => {
+  try {
+    const { sessionToken, gameId, roomCode, mode } = req.body || {};
+    const session = sessions.resume(sessionToken);
+    const game = games.find((item) => item.id === gameId && item.enabled && item.playUrl);
+    if (!session || !game || !/^[A-Z0-9]{5,8}$/i.test(String(roomCode || ''))) throw new Error('입장 정보를 확인해 주세요.');
+    const token = createJoinToken({ gameId, roomCode: String(roomCode).toUpperCase(), nickname: session.nickname, userId: session.userId, mode: mode === 'SPECTATOR' ? 'SPECTATOR' : 'PLAYER' }, process.env.PLATFORM_JOIN_SECRET);
+    const url = new URL(game.playUrl);
+    url.searchParams.set('room', String(roomCode).toUpperCase());
+    url.searchParams.set('joinToken', token);
+    res.json({ url: url.toString() });
+  } catch (error) { res.status(400).json({ message: error.message }); }
+});
 app.use(express.static(clientDir));
 app.get('/{*path}', (_req, res) => res.sendFile('index.html', { root: clientDir }));
 
