@@ -136,17 +136,38 @@ h3 { font-size: 1.15rem; margin-bottom: 8px; }
   .mobile-nav span { display: block; font-size: 1.1rem; }
 }
 @media (max-width: 600px) {
-  .content { padding-left: 16px; padding-right: 16px; }
-  .topbar { align-items: flex-start; }
-  h1 { max-width: 310px; }
+  .content { padding: 18px 14px calc(108px + env(safe-area-inset-bottom)); }
+  .topbar { align-items: flex-start; flex-direction: column; gap: 14px; margin-bottom: 24px; }
+  .topbar > .button { width: 100%; }
+  h1 { max-width: none; font-size: clamp(2rem, 10vw, 2.8rem); }
+  .section { margin-top: 28px; }
+  .section-head { align-items: flex-start; gap: 8px; flex-direction: column; }
   .game-grid { grid-template-columns: 1fr; }
-  .game-card { min-height: 240px; }
+  .game-card { min-height: 220px; padding: 18px; }
+  .game-icon { margin-bottom: 18px; }
+  .game-meta { flex-wrap: wrap; }
+  .card-actions { grid-template-columns: 1fr; }
   .detail-hero { min-height: 300px; padding: 24px; }
   .room-header { display: block; }
   .room-header .button { margin-top: 12px; }
+  .live-room { gap: 10px; padding: 14px; }
+  .live-room-info { width: calc(100% - 54px); }
+  .live-room-info strong, .live-room-info p { overflow-wrap: anywhere; }
+  .live-room-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .live-room-actions .button { width: 100%; min-height: 44px; }
+  .resume-card, .empty-card, .detail-panel, .lobby-panel { padding: 18px; }
   .chat { min-height: 390px; }
+  .messages { min-height: 220px; max-height: 48dvh; }
+  .chat-form { position: sticky; bottom: 0; padding-top: 8px; background: var(--panel); }
   .quick-start { padding: 18px; gap: 16px; }
   .quick-start ol { width: 100%; justify-content: space-between; gap: 5px; font-size: .76rem; }
   .quick-start li { gap: 4px; }
   .quick-start li + li::before { margin-right: 0; }
+}
+
+@media (max-width: 380px) {
+  .mobile-nav { left: 8px; right: 8px; }
+  .mobile-nav a { padding: 7px 1px; font-size: .7rem; }
+  .live-room-actions { grid-template-columns: 1fr; }
+  .quick-start ol { font-size: .68rem; }
 }
