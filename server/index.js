@@ -10,10 +10,12 @@ import { registerPlatformEvents } from './platform/socket/register-platform-even
 import { FileStateStore } from './platform/storage/file-state-store.js';
 import { LiveRoomService } from './platform/games/live-room-service.js';
 import { createJoinToken } from './platform/auth/join-token.js';
+import { PresenceService } from './platform/presence/presence-service.js';
 
 const clientDir = fileURLToPath(new URL('../client', import.meta.url));
 const games = await loadGameCatalog();
 const liveRooms = new LiveRoomService();
+const presence = new PresenceService();
 const stateStore = new FileStateStore();
 const restoredState = stateStore.load();
 let sessions;
@@ -33,6 +35,7 @@ app.use(express.json({ limit: '32kb' }));
 app.get('/api/health', (_req, res) => res.json({ ok: true, games: games.length }));
 app.get('/api/games', (_req, res) => res.json(games));
 app.get('/api/live-rooms', async (_req, res) => res.json(await liveRooms.list(games)));
+app.get('/api/presence', (_req, res) => res.json({ online: presence.list() }));
 app.post('/api/join-link', (req, res) => {
   try {
     const { sessionToken, gameId, roomCode, mode } = req.body || {};
@@ -57,6 +60,7 @@ io.on('connection', (socket) => registerPlatformEvents(io, socket, {
   sessions,
   rooms,
   games,
+  presence,
   publicAppUrl: process.env.PUBLIC_APP_URL || `http://localhost:${process.env.PORT || 3000}`
 }));
 

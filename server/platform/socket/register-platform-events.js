@@ -2,7 +2,7 @@ import { EVENTS } from '../../../shared/protocol/events.js';
 
 const ACK_ERROR = (error) => ({ ok: false, error: error.message || '요청을 처리하지 못했습니다.' });
 
-export function registerPlatformEvents(io, socket, { sessions, rooms, games, publicAppUrl }) {
+export function registerPlatformEvents(io, socket, { sessions, rooms, games, publicAppUrl, presence }) {
   let session = null;
   const attempts = [];
 
@@ -27,6 +27,7 @@ export function registerPlatformEvents(io, socket, { sessions, rooms, games, pub
   socket.on(EVENTS.SESSION_RESUME, (payload = {}, ack = () => {}) => {
     try {
       session = sessions.resume(payload.sessionToken) || sessions.create(payload.nickname);
+      presence?.touch(session, 'PLATFORM');
       if (!sessions.resume(session.sessionToken)) session = sessions.resume(session.sessionToken);
       const restoredRoom = session.roomId ? rooms.reconnect(session.roomId, session) : null;
       if (restoredRoom) socket.join(restoredRoom.roomId);
