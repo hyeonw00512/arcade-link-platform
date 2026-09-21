@@ -81,7 +81,7 @@ function liveRoomCard(room, game, includeGame = false) {
     ${includeGame ? `<div class="game-icon small">${ICONS[game.thumbnail] || '◆'}</div>` : ''}
     <div class="live-room-info"><div class="live-room-title"><strong>${includeGame ? `${escapeHtml(game.name)} · ` : ''}${escapeHtml(room.hostNickname)}의 방</strong><span class="room-status ${status.kind}">${status.label}</span></div>
       <p>${room.visibility === 'PRIVATE' ? '🔒 비공개' : '🌐 공개'} · ${room.playerCount}/${room.maxPlayers}명 · 관전자 ${room.spectatorCount}명${room.requiresPassword ? ' · 비밀번호 필요' : ''}</p><small>${status.description}</small></div>
-    <div class="live-room-actions">${room.canJoin ? `<a class="button secondary" data-play="${game.id}" href="${escapeHtml(room.joinUrl)}">참가</a>` : ''}${room.canSpectate ? `<a class="button ghost" data-play="${game.id}" href="${escapeHtml(room.joinUrl)}">관전</a>` : ''}${room.canReserveNextRound ? `<a class="button" data-play="${game.id}" href="${escapeHtml(room.joinUrl)}">다음 판 참가</a>` : ''}</div>
+    <div class="live-room-actions">${room.canJoin ? `<a class="button secondary" data-play="${game.id}" href="${escapeHtml(room.joinUrl)}">참가</a>` : ''}${room.canSpectate ? `<a class="button ghost" data-play="${game.id}" href="${escapeHtml(room.joinUrl)}">관전</a>` : ''}${room.canReserveNextRound ? `<a class="button" data-play="${game.id}" data-reserve-next href="${escapeHtml(room.joinUrl)}">다음 판 참가</a>` : ''}</div>
   </article>`;
 }
 
@@ -227,7 +227,7 @@ function bindCommon() {
     }
     event.preventDefault();
     try {
-      const mode = link.textContent.includes('관전') ? 'SPECTATOR' : 'PLAYER';
+      const mode = link.dataset.reserveNext !== undefined ? 'RESERVE' : link.textContent.includes('관전') ? 'SPECTATOR' : 'PLAYER';
       const response = await fetch('/api/join-link', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionToken: state.session.sessionToken, gameId, roomCode, mode }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message);

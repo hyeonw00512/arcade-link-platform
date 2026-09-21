@@ -39,10 +39,12 @@ app.post('/api/join-link', (req, res) => {
     const session = sessions.resume(sessionToken);
     const game = games.find((item) => item.id === gameId && item.enabled && item.playUrl);
     if (!session || !game || !/^[A-Z0-9]{5,8}$/i.test(String(roomCode || ''))) throw new Error('입장 정보를 확인해 주세요.');
-    const token = createJoinToken({ gameId, roomCode: String(roomCode).toUpperCase(), nickname: session.nickname, userId: session.userId, mode: mode === 'SPECTATOR' ? 'SPECTATOR' : 'PLAYER' }, process.env.PLATFORM_JOIN_SECRET);
+    const joinMode = mode === 'SPECTATOR' || mode === 'RESERVE' ? 'SPECTATOR' : 'PLAYER';
+    const token = createJoinToken({ gameId, roomCode: String(roomCode).toUpperCase(), nickname: session.nickname, userId: session.userId, mode: joinMode }, process.env.PLATFORM_JOIN_SECRET);
     const url = new URL(game.playUrl);
     url.searchParams.set('room', String(roomCode).toUpperCase());
     url.searchParams.set('joinToken', token);
+    if (mode === 'RESERVE') url.searchParams.set('reserveNextRound', '1');
     res.json({ url: url.toString() });
   } catch (error) { res.status(400).json({ message: error.message }); }
 });
