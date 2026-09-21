@@ -200,14 +200,31 @@ function bindCommon() {
   document.querySelectorAll('a[data-play]').forEach((link) => link.addEventListener('click', async (event) => {
     const roomCode = new URL(link.href).searchParams.get('room');
     if (!roomCode || !state.session?.sessionToken) return;
+    const gameId = link.dataset.play;
+    const activeRooms = readActiveGameRooms();
+    const activeRoom = activeRooms[gameId];
+    if (activeRoom && activeRoom.roomCode !== roomCode && activeRoom.mode !== 'SPECTATOR') {
+      const gameName = state.games.find((game) => game.id === gameId)?.name || '이 게임';
+      if (!window.confirm(`${gameName} ${activeRoom.roomCode} 방에서 플레이 중입니다.\n기존 방을 나가고 ${roomCode} 방에 참여하시겠습니까?`)) return;
+    }
     event.preventDefault();
     try {
-      const response = await fetch('/api/join-link', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionToken: state.session.sessionToken, gameId: link.dataset.play, roomCode, mode: link.textContent.includes('관전') ? 'SPECTATOR' : 'PLAYER' }) });
+      const mode = link.textContent.includes('관전') ? 'SPECTATOR' : 'PLAYER';
+      const response = await fetch('/api/join-link', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionToken: state.session.sessionToken, gameId, roomCode, mode }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message);
+      activeRooms[gameId] = { roomCode, mode };
+      localStorage.setItem('arcade-link-active-game-rooms', JSON.stringify(activeRooms));
       location.assign(result.url);
     } catch (error) { toast(error.message || '자동 입장을 준비하지 못했습니다.'); }
   }));
+}
+
+function readActiveGameRooms() {
+  try {
+    const value = JSON.parse(localStorage.getItem('arcade-link-active-game-rooms') || '{}');
+    return value && typeof value === 'object' ? value : {};
+  } catch { return {}; }
 }
 
 function scrollToGames() {
