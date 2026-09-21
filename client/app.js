@@ -13,7 +13,7 @@ const EVENTS = {
 
 const ICONS = { dice: '⚄', yut: '✦', words: 'Aa', mine: '⛏', castle: '♜' };
 const PROFILE_AVATARS = ['🦊', '🐼', '🐯', '🐸', '🐙', '🦄', '🐧', '🐨'];
-const state = { session: null, games: [], room: null, inviteUrl: '', selectedGame: null, connected: false, liveRooms: [] };
+const state = { session: null, games: [], room: null, inviteUrl: '', selectedGame: null, connected: false, liveRooms: [], needsNickname: false };
 const app = document.querySelector('#app');
 const toastNode = document.querySelector('#toast');
 const socket = io({ autoConnect: true, reconnection: true, reconnectionDelayMax: 4000 });
@@ -317,6 +317,25 @@ function withPlatformUrl(gameUrl) {
   return url.toString();
 }
 
+function renderNicknamePrompt() {
+  if (!state.needsNickname || document.querySelector('.nickname-overlay')) return;
+  document.body.insertAdjacentHTML('beforeend', `<div class="nickname-overlay" role="dialog" aria-modal="true" aria-labelledby="nickname-title"><form class="nickname-card" id="nickname-form"><span class="welcome-mark">A</span><p class="eyebrow">WELCOME TO ARCADE LINK</p><h2 id="nickname-title">어떻게 불러드릴까요?</h2><p class="muted">정한 닉네임은 모든 게임방에서 그대로 사용됩니다. 나중에 내 정보에서 바꿀 수 있어요.</p><label class="field"><span>닉네임</span><input class="input" id="welcome-nickname" maxlength="16" autocomplete="nickname" placeholder="2~16자 닉네임" required autofocus></label><button class="button" type="submit">게임 둘러보기</button></form></div>`);
+  document.querySelector('#nickname-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector('button');
+    button.disabled = true;
+    try {
+      const response = await emit(EVENTS.PROFILE_UPDATE, { nickname: document.querySelector('#welcome-nickname').value, avatar: state.session.avatar });
+      state.session = response.session;
+      state.needsNickname = false;
+      localStorage.setItem('arcade-link-session', JSON.stringify(response.session));
+      document.querySelector('.nickname-overlay')?.remove();
+      route();
+      toast(`${response.session.nickname}님, 환영합니다!`);
+    } catch (error) { toast(error.message); button.disabled = false; }
+  });
+}
+
 function route() {
   if (!state.session) return;
   const path = location.pathname;
@@ -330,13 +349,14 @@ function route() {
   if (path.startsWith('/room/') && state.room) return renderLobby();
   if (path === '/profile') return renderProfile();
   renderHome();
+  renderNicknamePrompt();
 }
 
 async function resumeSession() {
   try {
     const saved = JSON.parse(localStorage.getItem('arcade-link-session') || 'null');
     const response = await emit(EVENTS.SESSION_RESUME, { sessionToken: saved?.sessionToken });
-    state.session = response.session; state.games = response.games; state.room = response.room; state.connected = true;
+    state.session = response.session; state.games = response.games; state.room = response.room; state.connected = true; state.needsNickname = !saved?.sessionToken;
     localStorage.setItem('arcade-link-session', JSON.stringify(response.session));
     route();
     fetchLiveRooms();
