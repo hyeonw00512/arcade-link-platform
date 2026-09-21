@@ -55,6 +55,9 @@ h3 { font-size: 1.15rem; margin-bottom: 8px; }
 .quick-start li + li::before { content: '→'; color: var(--muted); margin-right: 4px; }
 .quick-start li span { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.1); color: var(--mint); font: 700 .76rem "Space Grotesk"; }
 .live-room-list { display: grid; gap: 10px; }
+.online-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.online-user { display: flex; align-items: center; gap: 11px; min-height: 70px; padding: 12px; border: 1px solid var(--line); border-radius: 17px; background: rgba(13,27,45,.76); }
+.online-user > div { min-width: 0; flex: 1; }.online-user strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.online-user p { margin: 4px 0 0; font-size: .78rem; }.online-user .status-dot { margin-left: auto; }
 .live-room { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 18px; background: rgba(13,27,45,.76); }
 .game-icon.small { width: 42px; height: 42px; margin: 0; border-radius: 13px; font-size: 1.25rem; }
 .live-room-info { min-width: 0; flex: 1; }
