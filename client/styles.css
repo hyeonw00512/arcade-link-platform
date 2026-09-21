@@ -106,6 +106,14 @@ h3 { font-size: 1.15rem; margin-bottom: 8px; }
 .detail-hero { min-height: 390px; padding: 34px; border-radius: 28px; border: 1px solid var(--line); background: linear-gradient(145deg, #142b43, #0b1727); display: flex; flex-direction: column; justify-content: flex-end; position: relative; overflow: hidden; }
 .detail-symbol { position: absolute; right: 8%; top: 12%; font-size: clamp(6rem, 16vw, 12rem); opacity: .17; transform: rotate(8deg); }
 .detail-panel, .lobby-panel { padding: 24px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--panel); }
+.launch-panel { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; background: linear-gradient(150deg, color-mix(in srgb, var(--panel-2) 86%, #ffffff 14%), var(--panel)); }
+.launch-panel::before { content: ""; position: absolute; width: 210px; height: 210px; top: -118px; right: -78px; border-radius: 50%; background: var(--mint); opacity: .13; filter: blur(3px); }
+.launch-panel > * { position: relative; }
+.launch-panel h2 { font-size: clamp(1.8rem, 4vw, 2.5rem); line-height: 1.04; margin-bottom: 14px; }
+.launch-panel .muted { line-height: 1.65; }
+.launch-button { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; min-height: 58px; margin-top: 24px; text-align: center; text-decoration: none; font-size: 1rem; }
+.launch-button span { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: rgba(6,32,23,.16); font-size: 1.15rem; }
+.launch-note { margin: 13px 0 0; color: var(--muted); font-size: .78rem; line-height: 1.5; text-align: center; }
 .profile-card { width: min(680px, 100%); padding: 28px; border: 1px solid var(--line); border-radius: 28px; background: linear-gradient(145deg, rgba(18,36,58,.96), rgba(10,25,42,.96)); }
 .profile-preview { display: flex; align-items: center; gap: 16px; padding-bottom: 22px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
 .profile-preview h2 { margin: 0 0 6px; }
