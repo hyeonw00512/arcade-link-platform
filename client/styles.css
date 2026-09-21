@@ -64,8 +64,26 @@ h3 { font-size: 1.15rem; margin-bottom: 8px; }
 .game-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .game-card { min-height: 260px; border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; background: linear-gradient(145deg, rgba(18,36,58,.96), rgba(10,25,42,.96)); display: flex; flex-direction: column; overflow: hidden; position: relative; }
 .game-card::after { content: ""; position: absolute; width: 160px; height: 160px; border-radius: 50%; top: -80px; right: -55px; background: var(--glow, var(--mint)); opacity: .1; filter: blur(2px); }
-.game-card:nth-child(2) { --glow: #ffd166; }
-.game-card:nth-child(3) { --glow: #c991ff; }
+.game-card-neon-dice { --glow: #ff3d81; background: linear-gradient(145deg, #32102c, #171126 62%, #25102f); border-color: rgba(255, 88, 151, .38); }
+.game-card-neon-dice .game-icon { color: #fff0f7; background: linear-gradient(135deg, #ff3d81, #9b4dff); box-shadow: 0 10px 24px rgba(255, 61, 129, .28); }
+.game-card-moon-yut { --glow: #60d8ff; background: linear-gradient(145deg, #082e43, #0b1e38 64%, #102a4b); border-color: rgba(96, 216, 255, .34); }
+.game-card-moon-yut .game-icon { color: #e9fbff; background: linear-gradient(135deg, #168db8, #4bd6d1); box-shadow: 0 10px 24px rgba(75, 214, 209, .24); }
+.game-card-echo-words { --glow: #d98cff; background: linear-gradient(145deg, #331a50, #221837 60%, #3e1d4f); border-color: rgba(217, 140, 255, .35); }
+.game-card-echo-words .game-icon { color: #fff4ff; background: linear-gradient(135deg, #a85ae7, #f38bbd); box-shadow: 0 10px 24px rgba(217, 140, 255, .24); }
+.game-card-sabotaji { --glow: #ffb451; background: linear-gradient(145deg, #3a2412, #21170f 62%, #443116); border-color: rgba(255, 180, 81, .36); }
+.game-card-sabotaji .game-icon { color: #fff4df; background: linear-gradient(135deg, #be6027, #edb23f); box-shadow: 0 10px 24px rgba(255, 180, 81, .24); }
+.game-card-crown-city { --glow: #e7c66b; background: linear-gradient(145deg, #2d3520, #1b241c 60%, #40351c); border-color: rgba(231, 198, 107, .34); }
+.game-card-crown-city .game-icon { color: #fff8dd; background: linear-gradient(135deg, #967938, #d8bb66); box-shadow: 0 10px 24px rgba(231, 198, 107, .24); }
+.theme-neon-dice { --mint: #ff79b0; --cyan: #a87cff; --panel: #211229; --panel-2: #35183f; --bg: #15091c; }
+.theme-moon-yut { --mint: #55e1d0; --cyan: #66cfff; --panel: #0c2535; --panel-2: #103b50; --bg: #061924; }
+.theme-echo-words { --mint: #e7a1ff; --cyan: #f2a8c8; --panel: #291a3a; --panel-2: #44235d; --bg: #170e24; }
+.theme-sabotaji { --mint: #f4bd67; --cyan: #ef8252; --panel: #2a1c14; --panel-2: #493019; --bg: #17100c; }
+.theme-crown-city { --mint: #e3c96f; --cyan: #91bb87; --panel: #202b21; --panel-2: #34412a; --bg: #121b14; }
+.theme-neon-dice .detail-hero { background: radial-gradient(circle at 82% 18%, rgba(255, 61, 129, .38), transparent 32%), linear-gradient(145deg, #421036, #1b1128); }
+.theme-moon-yut .detail-hero { background: radial-gradient(circle at 82% 18%, rgba(75, 214, 209, .32), transparent 32%), linear-gradient(145deg, #0d3a50, #0a1c31); }
+.theme-echo-words .detail-hero { background: radial-gradient(circle at 82% 18%, rgba(243, 139, 189, .32), transparent 32%), linear-gradient(145deg, #492462, #21162f); }
+.theme-sabotaji .detail-hero { background: radial-gradient(circle at 82% 18%, rgba(237, 178, 63, .34), transparent 32%), linear-gradient(145deg, #583115, #21140e); }
+.theme-crown-city .detail-hero { background: radial-gradient(circle at 82% 18%, rgba(216, 187, 102, .32), transparent 32%), linear-gradient(145deg, #3f4824, #18241b); }
 .game-icon { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; font-size: 1.7rem; background: rgba(255,255,255,.07); margin-bottom: 28px; }
 .game-card p { color: var(--muted); line-height: 1.6; }
 .game-meta { display: flex; gap: 7px; margin-top: auto; margin-bottom: 15px; }

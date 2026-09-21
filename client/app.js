@@ -39,7 +39,7 @@ function escapeHtml(value = '') {
   return String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
 }
 
-function shell(content, active = 'home') {
+function shell(content, active = 'home', theme = 'platform') {
   const session = state.session || { avatar: '◌', nickname: '연결 중' };
   return `
     <aside class="sidebar">
@@ -52,14 +52,14 @@ function shell(content, active = 'home') {
       </nav>
       <a class="sidebar-user" href="/profile" data-link aria-label="내 프로필 열기"><span class="avatar">${session.avatar}</span><div><strong>${escapeHtml(session.nickname)}</strong><div class="muted">게스트 플레이어 · 편집</div></div></a>
     </aside>
-    <main class="content">${content}</main>
+    <main class="content theme-${escapeHtml(theme)}">${content}</main>
     <nav class="mobile-nav" aria-label="모바일 메뉴">
       <a href="/" data-link><span>⌂</span>홈</a><a href="#all-games" data-games-link><span>◇</span>게임</a><a href="#" data-soon><span>♧</span>친구</a><a href="/profile" data-link class="${active === 'profile' ? 'active' : ''}"><span>${session.avatar}</span>내 정보</a>
     </nav>`;
 }
 
 function gameCard(game) {
-  return `<article class="game-card">
+  return `<article class="game-card game-card-${escapeHtml(game.id)}">
     <div class="game-icon">${ICONS[game.thumbnail] || '◆'}</div>
     <h3>${escapeHtml(game.name)}</h3><p>${escapeHtml(game.description)}</p>
     <div class="game-meta"><span class="chip">${game.minPlayers}–${game.maxPlayers}명</span>${game.recommendedPlayers ? `<span class="chip">권장 ${game.recommendedPlayers}명</span>` : ''}<span class="chip">모든 기기</span></div>
@@ -99,7 +99,7 @@ function renderDetail(game) {
         <div class="divider">또는</div>
         <form id="join-room-form" class="stack"><label class="field" for="joinCode"><span>방 코드</span><input id="joinCode" class="input code" maxlength="6" autocomplete="off" placeholder="ABC123" required></label><button class="button secondary" type="submit">코드로 입장</button></form>`}
       </aside>
-    </div>`, 'games');
+    </div>`, 'games', game.id);
   if (game.playUrl) {
     const roomPanel = document.createElement('section');
     roomPanel.className = 'section game-room-section';
