@@ -39,13 +39,15 @@ npm start
 - `CLIENT_ORIGIN`: 허용할 웹 출처. 운영에서는 실제 주소를 지정합니다.
 - `PUBLIC_APP_URL`: 초대 링크 기준 주소
 - `SESSION_TTL_DAYS`: 게스트 세션 유지 기간
+- `PLATFORM_JOIN_SECRET`: 플랫폼 닉네임 자동 입장과 게임 활동 표시를 서명하는 32자 이상의 비밀값
 
 ## Render 배포
 
 1. 플랫폼 프로젝트를 별도 GitHub 저장소에 올립니다.
 2. Render에서 **New + → Blueprint**를 선택하고 해당 저장소를 연결합니다.
 3. 저장소의 `render.yaml`을 확인한 뒤 배포합니다.
-4. 배포된 Render 주소를 `PUBLIC_APP_URL` 환경 변수로 추가하고 다시 배포합니다.
+4. 배포된 Render 주소를 `PUBLIC_APP_URL` 환경 변수로 추가합니다.
+5. Render 환경 변수에 임의의 긴 값으로 `PLATFORM_JOIN_SECRET`을 추가하고 다시 배포합니다. 이 값은 플랫폼만 보관하며 게임 주소에는 서명된 임시 토큰만 전달됩니다.
 
 배포 후 `https://배포주소/api/health`가 `{"ok":true}`를 반환하면 정상입니다. 깊은갱도처럼 공개 방 목록 API를 제공하는 게임은 플랫폼 홈의 **지금 참가할 수 있는 방**에 자동 표시됩니다.
 

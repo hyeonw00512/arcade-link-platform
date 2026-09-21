@@ -13,3 +13,5 @@ services:
         value: 30
       - key: CLIENT_ORIGIN
         value: "*"
+      - key: PLATFORM_JOIN_SECRET
+        generateValue: true
