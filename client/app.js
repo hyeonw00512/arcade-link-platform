@@ -67,6 +67,24 @@ function gameCard(game) {
   </article>`;
 }
 
+function roomStatus(room) {
+  if (room.status === 'PLAYING' && room.canReserveNextRound) return { label: '다음 판 참가', kind: 'next', description: '현재 게임이 끝나면 다음 판부터 참여합니다.' };
+  if (room.status === 'PLAYING') return { label: '진행 중', kind: 'playing', description: room.canSpectate ? '지금은 관전으로 참여할 수 있습니다.' : '게임이 진행 중입니다.' };
+  if (room.status === 'FINISHED') return { label: '게임 종료', kind: 'finished', description: '새 게임 시작을 기다리고 있습니다.' };
+  if (room.playerCount >= room.maxPlayers) return { label: '인원 마감', kind: 'full', description: room.canSpectate ? '플레이어는 가득 찼습니다. 관전할 수 있습니다.' : '플레이어가 모두 찼습니다.' };
+  return { label: '참가 가능', kind: 'waiting', description: '로비에서 바로 참가할 수 있습니다.' };
+}
+
+function liveRoomCard(room, game, includeGame = false) {
+  const status = roomStatus(room);
+  return `<article class="live-room status-${status.kind}">
+    ${includeGame ? `<div class="game-icon small">${ICONS[game.thumbnail] || '◆'}</div>` : ''}
+    <div class="live-room-info"><div class="live-room-title"><strong>${includeGame ? `${escapeHtml(game.name)} · ` : ''}${escapeHtml(room.hostNickname)}의 방</strong><span class="room-status ${status.kind}">${status.label}</span></div>
+      <p>${room.visibility === 'PRIVATE' ? '🔒 비공개' : '🌐 공개'} · ${room.playerCount}/${room.maxPlayers}명 · 관전자 ${room.spectatorCount}명${room.requiresPassword ? ' · 비밀번호 필요' : ''}</p><small>${status.description}</small></div>
+    <div class="live-room-actions">${room.canJoin ? `<a class="button secondary" data-play="${game.id}" href="${escapeHtml(room.joinUrl)}">참가</a>` : ''}${room.canSpectate ? `<a class="button ghost" data-play="${game.id}" href="${escapeHtml(room.joinUrl)}">관전</a>` : ''}${room.canReserveNextRound ? `<a class="button" data-play="${game.id}" href="${escapeHtml(room.joinUrl)}">다음 판 참가</a>` : ''}</div>
+  </article>`;
+}
+
 function renderHome() {
   const liveRooms = state.liveRooms.flatMap((entry) => entry.rooms.map((room) => ({ ...room, game: state.games.find((game) => game.id === entry.gameId) }))).filter((item) => item.game);
   const roomGame = state.room && state.games.find((game) => game.id === state.room.gameType);
@@ -74,7 +92,7 @@ function renderHome() {
     <header class="topbar"><div><p class="eyebrow">PLAY TOGETHER</p><h1>오늘은 무엇을<br>같이 해볼까요?</h1><p class="muted">PC와 모바일에서 같은 게임방으로 바로 만나요.</p></div><button class="button" data-scroll-games>게임 고르기</button></header>
     ${state.room ? `<section class="section"><div class="section-head"><h2>참여 중인 방</h2></div><div class="resume-card"><div><span class="chip">${state.room.status === 'WAITING' ? '로비 대기 중' : '게임 시작됨'}</span><h3 style="margin-top:12px">${escapeHtml(roomGame?.name || state.room.gameType)}</h3><p class="muted">방 코드 ${state.room.inviteCode} · ${state.room.players.length}/${state.room.maxPlayers}명</p></div><button class="button" data-resume-room>방으로 돌아가기</button></div></section>` : ''}
     <section class="quick-start" aria-label="게임 시작 안내"><div class="quick-start-title"><span aria-hidden="true">✦</span><div><strong>친구와 함께 시작하기</strong><p>게임을 고른 뒤 각 게임 안에서 방을 만들고 초대 링크 또는 방 코드를 공유하세요.</p></div></div><ol><li><span>1</span>게임 선택</li><li><span>2</span>게임방 만들기</li><li><span>3</span>친구 초대</li></ol></section>
-    ${liveRooms.length ? `<section class="section"><div class="section-head"><div><p class="eyebrow">LIVE ROOMS</p><h2>지금 참가할 수 있는 방</h2></div><span class="muted">공개 방만 표시</span></div><div class="live-room-list">${liveRooms.map((item) => `<article class="live-room"><div class="game-icon small">${ICONS[item.game.thumbnail] || '◆'}</div><div class="live-room-info"><strong>${escapeHtml(item.game.name)} · ${escapeHtml(item.hostNickname)}의 방</strong><p>🌐 공개 · ${item.playerCount}/${item.maxPlayers}명 · 관전자 ${item.spectatorCount}명 · ${item.status === 'WAITING' ? '대기 중' : '진행 중'}${item.requiresPassword ? ' · 🔒 비밀번호 필요' : ''}</p></div><div class="live-room-actions">${item.canJoin ? `<a class="button secondary" data-play="${item.game.id}" href="${escapeHtml(item.joinUrl)}">참가</a>` : ''}${item.canSpectate ? `<a class="button ghost" data-play="${item.game.id}" href="${escapeHtml(item.joinUrl)}">관전</a>` : ''}${item.canReserveNextRound ? `<a class="button" data-play="${item.game.id}" href="${escapeHtml(item.joinUrl)}">다음 판 예약</a>` : ''}</div></article>`).join('')}</div></section>` : ''}
+    ${liveRooms.length ? `<section class="section"><div class="section-head"><div><p class="eyebrow">LIVE ROOMS</p><h2>지금 열려 있는 방</h2></div><span class="muted">참가 · 관전 · 다음 판 상태</span></div><div class="live-room-list">${liveRooms.map((item) => liveRoomCard(item, item.game, true)).join('')}</div></section>` : ''}
     <section class="section" id="all-games"><div class="section-head"><h2>전체 게임</h2><span class="muted">${state.games.length}개</span></div><div class="game-grid">${state.games.map(gameCard).join('')}</div></section>
   `);
   bindCommon();
@@ -103,7 +121,7 @@ function renderDetail(game) {
   if (game.playUrl) {
     const roomPanel = document.createElement('section');
     roomPanel.className = 'section game-room-section';
-    roomPanel.innerHTML = `<div class="section-head"><div><p class="eyebrow">PUBLIC ROOMS</p><h2>참가 가능한 방</h2></div><button class="button ghost" data-refresh-live>새로고침</button></div>${liveGame && !liveGame.available ? '<p class="muted">방 목록을 불러오지 못했습니다. 게임 사이트에서 직접 확인해 주세요.</p>' : liveRooms.length ? `<div class="live-room-list">${liveRooms.map((room) => `<article class="live-room"><div class="live-room-info"><strong>${escapeHtml(room.hostNickname)}의 방</strong><p>🌐 공개 · ${room.playerCount}/${room.maxPlayers}명 · 관전자 ${room.spectatorCount}명 · ${room.status === 'WAITING' ? '대기 중' : '진행 중'}${room.requiresPassword ? ' · 🔒 비밀번호 필요' : ''}</p></div><div class="live-room-actions">${room.canJoin ? `<a class="button secondary" data-play="${game.id}" href="${escapeHtml(room.joinUrl)}">참가</a>` : ''}${room.canSpectate ? `<a class="button ghost" data-play="${game.id}" href="${escapeHtml(room.joinUrl)}">관전</a>` : ''}${room.canReserveNextRound ? `<a class="button" data-play="${game.id}" href="${escapeHtml(room.joinUrl)}">다음 판 예약</a>` : ''}</div></article>`).join('')}</div>` : '<div class="empty-card"><strong>현재 공개된 방이 없습니다.</strong><p class="muted" style="margin:8px 0 0">새 게임을 만들어 친구를 초대해 보세요.</p></div>'}`;
+    roomPanel.innerHTML = `<div class="section-head"><div><p class="eyebrow">PUBLIC ROOMS</p><h2>현재 방 목록</h2></div><button class="button ghost" data-refresh-live>새로고침</button></div>${liveGame && !liveGame.available ? '<p class="muted">방 목록을 불러오지 못했습니다. 게임 사이트에서 직접 확인해 주세요.</p>' : liveRooms.length ? `<div class="live-room-list">${liveRooms.map((room) => liveRoomCard(room, game)).join('')}</div>` : '<div class="empty-card"><strong>현재 공개된 방이 없습니다.</strong><p class="muted" style="margin:8px 0 0">새 게임을 만들어 친구를 초대해 보세요.</p></div>'}`;
     document.querySelector('.detail-layout').after(roomPanel);
   }
   bindCommon();

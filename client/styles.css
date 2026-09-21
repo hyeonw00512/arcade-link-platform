@@ -59,6 +59,17 @@ h3 { font-size: 1.15rem; margin-bottom: 8px; }
 .game-icon.small { width: 42px; height: 42px; margin: 0; border-radius: 13px; font-size: 1.25rem; }
 .live-room-info { min-width: 0; flex: 1; }
 .live-room-info p { margin: 5px 0 0; color: var(--muted); font-size: .86rem; }
+.live-room-info small { display: block; margin-top: 7px; color: #c5d2dc; font-size: .78rem; }
+.live-room-title { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.room-status { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border: 1px solid transparent; border-radius: 999px; font: 700 .7rem "Space Grotesk"; letter-spacing: .03em; }
+.room-status.waiting { color: #062017; background: var(--mint); }
+.room-status.playing { color: #dceeff; border-color: rgba(90,200,250,.35); background: rgba(90,200,250,.12); }
+.room-status.next { color: #2b1a03; background: #ffd166; }
+.room-status.full { color: #ffe0a6; border-color: rgba(255,190,94,.35); background: rgba(255,190,94,.12); }
+.room-status.finished { color: #c2ccd3; border-color: rgba(194,204,211,.24); background: rgba(194,204,211,.08); }
+.live-room.status-playing { border-color: rgba(90,200,250,.2); }
+.live-room.status-next { border-color: rgba(255,209,102,.32); }
+.live-room.status-full { opacity: .92; }
 .live-room-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 8px; }
 .live-room-actions .button { min-height: 38px; display: grid; place-items: center; padding: 7px 12px; text-decoration: none; }
 .game-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
