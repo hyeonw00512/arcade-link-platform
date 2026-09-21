@@ -44,6 +44,8 @@ app.post('/api/join-link', (req, res) => {
     const url = new URL(game.playUrl);
     url.searchParams.set('room', String(roomCode).toUpperCase());
     url.searchParams.set('joinToken', token);
+    const platformUrl = req.get('origin') || process.env.PUBLIC_APP_URL;
+    if (platformUrl && /^https?:\/\//i.test(platformUrl)) url.searchParams.set('platformUrl', platformUrl);
     if (mode === 'RESERVE') url.searchParams.set('reserveNextRound', '1');
     res.json({ url: url.toString() });
   } catch (error) { res.status(400).json({ message: error.message }); }

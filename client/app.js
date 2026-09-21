@@ -108,7 +108,7 @@ function renderDetail(game) {
     <header class="topbar"><div><p class="eyebrow">GAME DETAIL</p><h1>${escapeHtml(game.name)}</h1></div><a class="button secondary" href="/" data-link>← 게임 목록</a></header>
     <div class="detail-layout">
       <section class="detail-hero"><div class="detail-symbol">${ICONS[game.thumbnail] || '◆'}</div><p class="eyebrow">${game.gameVersion} · CROSS PLAY</p><h2>${escapeHtml(game.name)}</h2><p class="muted">${escapeHtml(game.description)}</p><div class="game-meta"><span class="chip">${game.minPlayers}–${game.maxPlayers}명</span>${game.recommendedPlayers ? `<span class="chip">권장 ${game.recommendedPlayers}명</span>` : ''}${game.modes ? `<span class="chip">개인전 · 팀전</span>` : ''}<span class="chip">PC · Android · iOS</span></div></section>
-      <aside class="detail-panel"><h2>플레이 시작</h2>${game.playUrl ? `<p class="muted">공개 방에 참가하거나, 새 게임을 만들어 친구를 초대하세요.</p><a class="button" data-play="${game.id}" style="display:block;text-align:center;text-decoration:none" href="${escapeHtml(game.playUrl)}">새 게임 만들기</a>` : `<p class="muted">새 방을 열거나 친구의 방 코드를 입력하세요.</p>
+      <aside class="detail-panel"><h2>플레이 시작</h2>${game.playUrl ? `<p class="muted">공개 방에 참가하거나, 새 게임을 만들어 친구를 초대하세요.</p><a class="button" data-play="${game.id}" style="display:block;text-align:center;text-decoration:none" href="${escapeHtml(withPlatformUrl(game.playUrl))}">새 게임 만들기</a>` : `<p class="muted">새 방을 열거나 친구의 방 코드를 입력하세요.</p>
         <form id="create-room-form" class="stack">
           <div class="field"><label for="maxPlayers">최대 인원</label><select class="input" id="maxPlayers">${Array.from({length: game.maxPlayers - game.minPlayers + 1}, (_, i) => `<option value="${i + game.minPlayers}" ${i + game.minPlayers === game.maxPlayers ? 'selected' : ''}>${i + game.minPlayers}명</option>`).join('')}</select></div>
           <label><input type="checkbox" id="privateRoom"> 비공개 방으로 만들기</label>
@@ -309,6 +309,12 @@ function scrollMessages() {
 function navigate(path) {
   history.pushState({}, '', path);
   route();
+}
+
+function withPlatformUrl(gameUrl) {
+  const url = new URL(gameUrl, location.origin);
+  url.searchParams.set('platformUrl', location.origin);
+  return url.toString();
 }
 
 function route() {
