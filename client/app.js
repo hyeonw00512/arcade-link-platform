@@ -75,6 +75,15 @@ function roomStatus(room) {
   return { label: '참가 가능', kind: 'waiting', description: '로비에서 바로 참가할 수 있습니다.' };
 }
 
+function activityLabel(status) {
+  if (status === 'PLATFORM') return '플랫폼 둘러보는 중';
+  const [gameId, activity] = String(status || '').split(':');
+  const game = state.games.find((item) => item.id === gameId);
+  const gameName = game?.name || '게임';
+  const activityName = ({ LOBBY: '로비 대기', PLAYING: '플레이 중', SPECTATING: '관전 중' })[activity];
+  return activityName ? `${gameName} · ${activityName}` : '플랫폼 접속 중';
+}
+
 function liveRoomCard(room, game, includeGame = false) {
   const status = roomStatus(room);
   return `<article class="live-room status-${status.kind}">
@@ -93,7 +102,7 @@ function renderHome() {
     ${state.room ? `<section class="section"><div class="section-head"><h2>참여 중인 방</h2></div><div class="resume-card"><div><span class="chip">${state.room.status === 'WAITING' ? '로비 대기 중' : '게임 시작됨'}</span><h3 style="margin-top:12px">${escapeHtml(roomGame?.name || state.room.gameType)}</h3><p class="muted">방 코드 ${state.room.inviteCode} · ${state.room.players.length}/${state.room.maxPlayers}명</p></div><button class="button" data-resume-room>방으로 돌아가기</button></div></section>` : ''}
     <section class="quick-start" aria-label="게임 시작 안내"><div class="quick-start-title"><span aria-hidden="true">✦</span><div><strong>플랫폼에서 방을 찾아 바로 시작하세요</strong><p>공개 방은 여기서 참가·관전하고, 새 방은 게임별 규칙을 정한 뒤 초대 링크로 친구를 부릅니다.</p></div></div><ol><li><span>1</span>게임 선택</li><li><span>2</span>방 참가 또는 생성</li><li><span>3</span>함께 플레이</li></ol></section>
     ${liveRooms.length ? `<section class="section"><div class="section-head"><div><p class="eyebrow">LIVE ROOMS</p><h2>지금 열려 있는 방</h2></div><span class="muted">참가 · 관전 · 다음 판 상태</span></div><div class="live-room-list">${liveRooms.map((item) => liveRoomCard(item, item.game, true)).join('')}</div></section>` : ''}
-    <section class="section"><div class="section-head"><div><p class="eyebrow">ONLINE NOW</p><h2>함께 접속 중인 사용자</h2></div><span class="chip">${state.online.length}명 온라인</span></div><div class="online-list">${state.online.length ? state.online.map((user) => `<div class="online-user"><span class="avatar">${user.avatar}</span><div><strong>${escapeHtml(user.nickname)}</strong><p class="muted">${user.status === 'PLATFORM' ? '플랫폼 둘러보는 중' : escapeHtml(user.status)}</p></div><i class="status-dot online"></i></div>`).join('') : '<div class="empty-card"><strong>현재 표시할 사용자가 없습니다.</strong><p class="muted" style="margin:8px 0 0">플랫폼에 접속하면 여기에 표시됩니다.</p></div>'}</div></section>
+    <section class="section"><div class="section-head"><div><p class="eyebrow">ONLINE NOW</p><h2>함께 접속 중인 사용자</h2></div><span class="chip">${state.online.length}명 온라인</span></div><div class="online-list">${state.online.length ? state.online.map((user) => `<div class="online-user"><span class="avatar">${user.avatar}</span><div><strong>${escapeHtml(user.nickname)}</strong><p class="muted">${escapeHtml(activityLabel(user.status))}</p></div><i class="status-dot online"></i></div>`).join('') : '<div class="empty-card"><strong>현재 표시할 사용자가 없습니다.</strong><p class="muted" style="margin:8px 0 0">플랫폼에 접속하면 여기에 표시됩니다.</p></div>'}</div></section>
     <section class="section" id="all-games"><div class="section-head"><h2>전체 게임</h2><span class="muted">${state.games.length}개</span></div><div class="game-grid">${state.games.map(gameCard).join('')}</div></section>
   `);
   bindCommon();
@@ -109,7 +118,7 @@ function renderDetail(game) {
     <header class="topbar"><div><p class="eyebrow">GAME DETAIL</p><h1>${escapeHtml(game.name)}</h1></div><a class="button secondary" href="/" data-link>← 게임 목록</a></header>
     <div class="detail-layout">
       <section class="detail-hero"><div class="detail-symbol">${ICONS[game.thumbnail] || '◆'}</div><p class="eyebrow">${game.gameVersion} · CROSS PLAY</p><h2>${escapeHtml(game.name)}</h2><p class="muted">${escapeHtml(game.description)}</p><div class="game-meta"><span class="chip">${game.minPlayers}–${game.maxPlayers}명</span>${game.recommendedPlayers ? `<span class="chip">권장 ${game.recommendedPlayers}명</span>` : ''}${game.modes ? `<span class="chip">개인전 · 팀전</span>` : ''}<span class="chip">PC · Android · iOS</span></div></section>
-      <aside class="detail-panel launch-panel"><p class="eyebrow">ROOM HUB</p><h2>방을 찾아<br>바로 시작하세요</h2>${game.playUrl ? `<p class="muted">아래 공개 방에서 참가·관전을 선택하세요. 새 방은 게임 화면에서 인원과 게임 규칙을 정해 만듭니다.</p><a class="button launch-button" data-play="${game.id}" href="${escapeHtml(withPlatformUrl(game.playUrl))}"><span>＋</span> 새 게임 만들기</a><p class="launch-note">내 닉네임은 플랫폼 설정을 기준으로 자동 전달됩니다.</p>` : `<p class="muted">새 방을 열거나 친구의 방 코드를 입력하세요.</p>
+      <aside class="detail-panel launch-panel"><p class="eyebrow">ROOM HUB</p><h2>방을 찾아<br>바로 시작하세요</h2>${game.playUrl ? `<p class="muted">아래 공개 방에서 참가·관전을 선택하세요. 새 방은 게임 화면에서 인원과 게임 규칙을 정해 만듭니다.</p><a class="button launch-button" data-launch-game="${game.id}" href="${escapeHtml(withPlatformUrl(game.playUrl))}"><span>＋</span> 새 게임 만들기</a><p class="launch-note">내 닉네임은 플랫폼 설정을 기준으로 자동 전달됩니다.</p>` : `<p class="muted">새 방을 열거나 친구의 방 코드를 입력하세요.</p>
         <form id="create-room-form" class="stack">
           <div class="field"><label for="maxPlayers">최대 인원</label><select class="input" id="maxPlayers">${Array.from({length: game.maxPlayers - game.minPlayers + 1}, (_, i) => `<option value="${i + game.minPlayers}" ${i + game.minPlayers === game.maxPlayers ? 'selected' : ''}>${i + game.minPlayers}명</option>`).join('')}</select></div>
           <label><input type="checkbox" id="privateRoom"> 비공개 방으로 만들기</label>
@@ -236,6 +245,20 @@ function bindCommon() {
       localStorage.setItem('arcade-link-active-game-rooms', JSON.stringify(activeRooms));
       location.assign(result.url);
     } catch (error) { toast(error.message || '자동 입장을 준비하지 못했습니다.'); }
+  }));
+  document.querySelectorAll('a[data-launch-game]').forEach((link) => link.addEventListener('click', async (event) => {
+    if (!state.session?.sessionToken) return;
+    event.preventDefault();
+    try {
+      const response = await fetch('/api/game-launch-link', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ sessionToken: state.session.sessionToken, gameId: link.dataset.launchGame })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message);
+      location.assign(result.url);
+    } catch (error) { toast(error.message || '게임 실행을 준비하지 못했습니다.'); }
   }));
 }
 
