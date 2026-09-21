@@ -314,6 +314,7 @@ function navigate(path) {
 function withPlatformUrl(gameUrl) {
   const url = new URL(gameUrl, location.origin);
   url.searchParams.set('platformUrl', location.origin);
+  if (state.session?.nickname) url.searchParams.set('platformNickname', state.session.nickname);
   return url.toString();
 }
 
