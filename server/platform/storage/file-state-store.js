@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,7 +26,7 @@ export class FileStateStore {
 
   save({ sessions, rooms }) {
     mkdirSync(dirname(this.filePath), { recursive: true });
-    const temporaryFile = `${this.filePath}.${process.pid}.tmp`;
+    const temporaryFile = `${this.filePath}.${process.pid}.${crypto.randomUUID()}.tmp`;
     writeFileSync(temporaryFile, JSON.stringify({ sessions, rooms }, null, 2), 'utf8');
     renameSync(temporaryFile, this.filePath);
   }
