@@ -17,6 +17,7 @@ const state = { session: null, games: [], room: null, inviteUrl: '', selectedGam
 const app = document.querySelector('#app');
 const toastNode = document.querySelector('#toast');
 const socket = io({ autoConnect: true, reconnection: true, reconnectionDelayMax: 4000 });
+let liveRefreshTimer = null;
 
 function emit(event, payload = {}) {
   return new Promise((resolve, reject) => {
@@ -400,11 +401,23 @@ async function fetchLiveRooms() {
   }
 }
 
+function startLiveRefresh() {
+  if (liveRefreshTimer) return;
+  liveRefreshTimer = window.setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      fetchLiveRooms();
+      fetchPresence().then(() => {
+        if (location.pathname === '/') route();
+      });
+    }
+  }, 20_000);
+}
+
 async function fetchPresence() {
   try { const response = await fetch('/api/presence'); if (response.ok) state.online = (await response.json()).online || []; } catch { state.online = []; }
 }
 
-socket.on('connect', resumeSession);
+socket.on('connect', () => { resumeSession(); startLiveRefresh(); });
 socket.on('disconnect', () => { state.connected = false; toast('연결이 끊겼습니다. 자동으로 다시 연결합니다.'); });
 socket.on(EVENTS.ROOM_STATE, (room) => { if (state.room?.roomId === room.roomId) { state.room = room; route(); } });
 socket.on(EVENTS.CHAT_MESSAGE, (message) => {
