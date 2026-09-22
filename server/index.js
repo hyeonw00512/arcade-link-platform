@@ -36,7 +36,7 @@ app.use(express.json({ limit: '32kb' }));
 app.get('/api/health', (_req, res) => res.json({ ok: true, games: games.length }));
 app.get('/api/games', (_req, res) => res.json(games));
 app.get('/api/live-rooms', async (_req, res) => res.json(await liveRooms.list(games)));
-app.get('/api/presence', (_req, res) => res.json({ online: presence.list() }));
+app.get('/api/presence', (_req, res) => res.json({ online: presence.list(), summary: presence.summary() }));
 app.options('/api/activity', (_req, res) => res
   .set('access-control-allow-origin', '*')
   .set('access-control-allow-methods', 'POST, OPTIONS')

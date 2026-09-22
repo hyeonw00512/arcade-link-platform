@@ -59,6 +59,9 @@ h3 { font-size: 1.15rem; margin-bottom: 8px; }
 .online-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
 .online-user { display: flex; align-items: center; gap: 11px; min-height: 70px; padding: 12px; border: 1px solid var(--line); border-radius: 17px; background: rgba(13,27,45,.76); }
 .online-user > div { min-width: 0; flex: 1; }.online-user strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.online-user p { margin: 4px 0 0; font-size: .78rem; }.online-user .status-dot { margin-left: auto; }
+.presence-overview { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.presence-chip { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: .72rem; }
+.presence-chip.lobby { color: var(--mint); border-color: rgba(84,240,189,.28); }.presence-chip.playing { color: var(--cyan); border-color: rgba(90,200,250,.3); }.presence-chip.spectating { color: #e7c66b; border-color: rgba(231,198,107,.3); }
 .live-room { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 18px; background: rgba(13,27,45,.76); }
 .game-icon.small { width: 42px; height: 42px; margin: 0; border-radius: 13px; font-size: 1.25rem; }
 .live-room-info { min-width: 0; flex: 1; }

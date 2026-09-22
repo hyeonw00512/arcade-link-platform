@@ -14,7 +14,7 @@ const EVENTS = {
 
 const ICONS = { dice: '⚄', yut: '✦', words: 'Aa', mine: '⛏', castle: '♜', clue: '🔎' };
 const PROFILE_AVATARS = ['🦊', '🐼', '🐯', '🐸', '🐙', '🦄', '🐧', '🐨'];
-const state = { session: null, games: [], room: null, inviteUrl: '', selectedGame: null, connected: false, liveRooms: [], online: [], needsNickname: false };
+const state = { session: null, games: [], room: null, inviteUrl: '', selectedGame: null, connected: false, liveRooms: [], online: [], presenceSummary: null, needsNickname: false };
 const app = document.querySelector('#app');
 const toastNode = document.querySelector('#toast');
 const socket = io({ autoConnect: true, reconnection: true, reconnectionDelayMax: 4000 });
@@ -86,6 +86,16 @@ function activityLabel(status) {
   return activityName ? `${gameName} · ${activityName}` : '플랫폼 접속 중';
 }
 
+function presenceOverview() {
+  const summary = state.presenceSummary?.statuses || {};
+  return [
+    ['로비', summary.lobby || 0, 'lobby'],
+    ['플레이', summary.playing || 0, 'playing'],
+    ['관전', summary.spectating || 0, 'spectating'],
+    ['플랫폼', summary.platform || 0, 'platform']
+  ].filter(([, count]) => count > 0).map(([label, count, kind]) => `<span class="presence-chip ${kind}">${label} ${count}</span>`).join('');
+}
+
 function liveRoomCard(room, game, includeGame = false) {
   const status = roomStatus(room);
   return `<article class="live-room status-${status.kind}">
@@ -104,7 +114,7 @@ function renderHome() {
     ${state.room ? `<section class="section"><div class="section-head"><h2>참여 중인 방</h2></div><div class="resume-card"><div><span class="chip">${state.room.status === 'WAITING' ? '로비 대기 중' : '게임 시작됨'}</span><h3 style="margin-top:12px">${escapeHtml(roomGame?.name || state.room.gameType)}</h3><p class="muted">방 코드 ${state.room.inviteCode} · ${state.room.players.length}/${state.room.maxPlayers}명</p></div><button class="button" data-resume-room>방으로 돌아가기</button></div></section>` : ''}
     <section class="quick-start" aria-label="게임 시작 안내"><div class="quick-start-title"><span aria-hidden="true">✦</span><div><strong>플랫폼에서 방을 찾아 바로 시작하세요</strong><p>공개 방은 여기서 참가·관전하고, 새 방은 게임별 규칙을 정한 뒤 초대 링크로 친구를 부릅니다.</p></div></div><ol><li><span>1</span>게임 선택</li><li><span>2</span>방 참가 또는 생성</li><li><span>3</span>함께 플레이</li></ol></section>
     ${liveRooms.length ? `<section class="section"><div class="section-head"><div><p class="eyebrow">LIVE ROOMS</p><h2>지금 열려 있는 방</h2></div><span class="muted">참가 · 관전 · 다음 판 상태</span></div><div class="live-room-list">${liveRooms.map((item) => liveRoomCard(item, item.game, true)).join('')}</div></section>` : ''}
-    <section class="section"><div class="section-head"><div><p class="eyebrow">ONLINE NOW</p><h2>함께 접속 중인 사용자</h2></div><span class="chip">${state.online.length}명 온라인</span></div><div class="online-list">${state.online.length ? state.online.map((user) => `<div class="online-user"><span class="avatar">${user.avatar}</span><div><strong>${escapeHtml(user.nickname)}</strong><p class="muted">${escapeHtml(activityLabel(user.status))}</p></div><i class="status-dot online"></i></div>`).join('') : '<div class="empty-card"><strong>현재 표시할 사용자가 없습니다.</strong><p class="muted" style="margin:8px 0 0">플랫폼에 접속하면 여기에 표시됩니다.</p></div>'}</div></section>
+    <section class="section"><div class="section-head"><div><p class="eyebrow">ONLINE NOW</p><h2>함께 접속 중인 사용자</h2><div class="presence-overview">${presenceOverview() || '<span class="presence-chip platform">접속 현황 수집 중</span>'}</div></div><span class="chip">${state.online.length}명 온라인</span></div><div class="online-list">${state.online.length ? state.online.map((user) => `<div class="online-user"><span class="avatar">${user.avatar}</span><div><strong>${escapeHtml(user.nickname)}</strong><p class="muted">${escapeHtml(activityLabel(user.status))}</p></div><i class="status-dot online"></i></div>`).join('') : '<div class="empty-card"><strong>현재 표시할 사용자가 없습니다.</strong><p class="muted" style="margin:8px 0 0">플랫폼에 접속하면 여기에 표시됩니다.</p></div>'}</div></section>
     <section class="section" id="all-games"><div class="section-head"><h2>전체 게임</h2><span class="muted">${state.games.length}개</span></div><div class="game-grid">${state.games.map(gameCard).join('')}</div></section>
   `);
   bindCommon();
@@ -416,7 +426,7 @@ function startLiveRefresh() {
 }
 
 async function fetchPresence() {
-  try { const response = await fetch('/api/presence'); if (response.ok) state.online = (await response.json()).online || []; } catch { state.online = []; }
+  try { const response = await fetch('/api/presence'); if (response.ok) { const payload = await response.json(); state.online = payload.online || []; state.presenceSummary = payload.summary || null; } } catch { state.online = []; state.presenceSummary = null; }
 }
 
 socket.on('connect', () => { resumeSession(); startLiveRefresh(); });
