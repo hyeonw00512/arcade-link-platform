@@ -1,6 +1,8 @@
 export class LiveRoomService {
-  constructor(fetcher = fetch) {
+  constructor(fetcher = fetch, { timeoutMs = 12_000 } = {}) {
     this.fetcher = fetcher;
+    this.timeoutMs = timeoutMs;
+    this.cache = new Map();
   }
 
   async list(games) {
@@ -10,18 +12,23 @@ export class LiveRoomService {
 
   async fetchGame(game) {
     try {
-      const response = await this.fetcher(game.statusUrl, { signal: AbortSignal.timeout(3_000), headers: { accept: 'application/json' } });
+      const response = await this.fetcher(game.statusUrl, { signal: AbortSignal.timeout(this.timeoutMs), headers: { accept: 'application/json' } });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const payload = await response.json();
       if (payload.gameId !== game.id || !Array.isArray(payload.rooms)) throw new Error('응답 형식이 올바르지 않습니다.');
-      return {
+      const result = {
         gameId: game.id,
         available: true,
+        stale: false,
         updatedAt: payload.updatedAt || new Date().toISOString(),
         rooms: payload.rooms.map((room) => normalizeRoom(room, payload.capabilities))
       };
+      this.cache.set(game.id, result);
+      return result;
     } catch {
-      return { gameId: game.id, available: false, rooms: [] };
+      const cached = this.cache.get(game.id);
+      if (cached) return { ...cached, stale: true };
+      return { gameId: game.id, available: false, stale: false, rooms: [] };
     }
   }
 }

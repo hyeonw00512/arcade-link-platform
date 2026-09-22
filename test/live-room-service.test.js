@@ -21,3 +21,22 @@ test('live room service normalizes game room status and access actions', async (
   assert.equal(result.rooms[0].canSpectate, true);
   assert.equal(result.rooms[1].canReserveNextRound, true);
 });
+
+test('live room service keeps the last successful room list while a game server wakes', async () => {
+  let online = true;
+  const service = new LiveRoomService(async () => {
+    if (!online) throw new Error('temporary unavailable');
+    return { ok: true, json: async () => ({
+      gameId: 'demo', capabilities: {}, rooms: [
+        { roomCode: 'CACHE1', hostNickname: '방장', playerCount: 1, maxPlayers: 4, status: 'WAITING', canJoin: true }
+      ]
+    }) };
+  });
+  const game = { id: 'demo', statusUrl: 'https://example.test/rooms' };
+  await service.list([game]);
+  online = false;
+  const [result] = await service.list([game]);
+  assert.equal(result.available, true);
+  assert.equal(result.stale, true);
+  assert.equal(result.rooms[0].roomCode, 'CACHE1');
+});

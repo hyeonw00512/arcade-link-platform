@@ -38,6 +38,14 @@ export function registerPlatformEvents(io, socket, { sessions, rooms, games, pub
     }
   });
 
+  // A connected Socket.IO session alone is not enough to distinguish an open
+  // platform tab from a backgrounded or abandoned browser. The client sends a
+  // small heartbeat while it is visible so the online list naturally expires.
+  socket.on(EVENTS.PRESENCE_HEARTBEAT, guard((_, ack) => {
+    presence?.touch(session, 'PLATFORM');
+    ack({ ok: true });
+  }));
+
   socket.on(EVENTS.PROFILE_UPDATE, guard((payload = {}, ack) => {
     session = sessions.updateProfile(session.sessionToken, payload);
     const room = rooms.updatePlayerProfile(session.userId, session);

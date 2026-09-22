@@ -1,5 +1,6 @@
 export const EVENTS = Object.freeze({
   SESSION_RESUME: 'platform:session:resume',
+  PRESENCE_HEARTBEAT: 'platform:presence:heartbeat',
   PROFILE_UPDATE: 'platform:profile:update',
   ROOM_CREATE: 'platform:room:create',
   ROOM_JOIN: 'platform:room:join',

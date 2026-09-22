@@ -1,5 +1,6 @@
 const EVENTS = {
   SESSION_RESUME: 'platform:session:resume',
+  PRESENCE_HEARTBEAT: 'platform:presence:heartbeat',
   PROFILE_UPDATE: 'platform:profile:update',
   ROOM_CREATE: 'platform:room:create',
   ROOM_JOIN: 'platform:room:join',
@@ -132,7 +133,7 @@ function renderDetail(game) {
   if (game.playUrl) {
     const roomPanel = document.createElement('section');
     roomPanel.className = 'section game-room-section';
-    roomPanel.innerHTML = `<div class="section-head"><div><p class="eyebrow">PUBLIC ROOMS</p><h2>현재 방 목록</h2></div><button class="button ghost" data-refresh-live>새로고침</button></div>${liveGame && !liveGame.available ? '<p class="muted">방 목록을 불러오지 못했습니다. 게임 사이트에서 직접 확인해 주세요.</p>' : liveRooms.length ? `<div class="live-room-list">${liveRooms.map((room) => liveRoomCard(room, game)).join('')}</div>` : '<div class="empty-card"><strong>현재 공개된 방이 없습니다.</strong><p class="muted" style="margin:8px 0 0">새 게임을 만들어 친구를 초대해 보세요.</p></div>'}`;
+    roomPanel.innerHTML = `<div class="section-head"><div><p class="eyebrow">PUBLIC ROOMS</p><h2>현재 방 목록</h2>${liveGame?.stale ? '<p class="muted room-list-note">게임 서버를 깨우는 중이라 마지막으로 확인한 목록을 표시합니다.</p>' : ''}</div><button class="button ghost" data-refresh-live>새로고침</button></div>${liveGame && !liveGame.available ? '<p class="muted">방 목록을 불러오지 못했습니다. 잠시 후 새로고침하거나 게임 사이트에서 직접 확인해 주세요.</p>' : liveRooms.length ? `<div class="live-room-list">${liveRooms.map((room) => liveRoomCard(room, game)).join('')}</div>` : '<div class="empty-card"><strong>현재 공개된 방이 없습니다.</strong><p class="muted" style="margin:8px 0 0">새 게임을 만들어 친구를 초대해 보세요.</p></div>'}`;
     document.querySelector('.detail-layout').after(roomPanel);
   }
   bindCommon();
@@ -405,12 +406,13 @@ function startLiveRefresh() {
   if (liveRefreshTimer) return;
   liveRefreshTimer = window.setInterval(() => {
     if (document.visibilityState === 'visible') {
+      emit(EVENTS.PRESENCE_HEARTBEAT).catch(() => {});
       fetchLiveRooms();
       fetchPresence().then(() => {
         if (location.pathname === '/') route();
       });
     }
-  }, 20_000);
+  }, 30_000);
 }
 
 async function fetchPresence() {
@@ -427,3 +429,10 @@ socket.on(EVENTS.CHAT_MESSAGE, (message) => {
   if (messages) { if (messages.querySelector('.muted:only-child')) messages.innerHTML = ''; messages.insertAdjacentHTML('beforeend', messageHtml(message)); scrollMessages(); }
 });
 window.addEventListener('popstate', route);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    emit(EVENTS.PRESENCE_HEARTBEAT).catch(() => {});
+    fetchLiveRooms();
+    fetchPresence().then(() => { if (location.pathname === '/') route(); });
+  }
+});
