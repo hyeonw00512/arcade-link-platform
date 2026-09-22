@@ -18,7 +18,8 @@ export function registerPlatformEvents(io, socket, { sessions, rooms, games, pub
     try {
       if (limited()) throw new Error('요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.');
       if (!session) throw new Error('세션 연결이 필요합니다.');
-      handler(...args, ack);
+      const operation = handler(...args, ack);
+      if (operation?.catch) operation.catch((error) => ack(ACK_ERROR(error)));
     } catch (error) {
       ack(ACK_ERROR(error));
     }
@@ -53,30 +54,30 @@ export function registerPlatformEvents(io, socket, { sessions, rooms, games, pub
     ack({ ok: true, session: sessions.publicSession(session) });
   }));
 
-  socket.on(EVENTS.ROOM_CREATE, guard((payload = {}, ack) => {
+  socket.on(EVENTS.ROOM_CREATE, guard(async (payload = {}, ack) => {
     const previousRoom = rooms.findByUser(session.userId);
     const room = rooms.create({ ...payload, session });
     if (previousRoom) {
       const oldRoom = rooms.leave(session.userId);
-      socket.leave(previousRoom.roomId);
+      await socket.leave(previousRoom.roomId);
       if (oldRoom && !oldRoom.deleted) io.to(oldRoom.room.roomId).emit(EVENTS.ROOM_STATE, rooms.publicState(oldRoom.room));
     }
     sessions.attachRoom(session.sessionToken, room.roomId);
-    socket.join(room.roomId);
+    await socket.join(room.roomId);
     ack({ ok: true, room: rooms.publicState(room), inviteUrl: `${publicAppUrl}/invite/${room.inviteCode}` });
     io.to(room.roomId).emit(EVENTS.ROOM_STATE, rooms.publicState(room));
   }));
 
-  socket.on(EVENTS.ROOM_JOIN, guard((payload = {}, ack) => {
+  socket.on(EVENTS.ROOM_JOIN, guard(async (payload = {}, ack) => {
     const previousRoom = rooms.findByUser(session.userId);
     const room = rooms.join({ inviteCode: payload.inviteCode, session });
     if (previousRoom && previousRoom.roomId !== room.roomId) {
       const oldRoom = rooms.leave(session.userId);
-      socket.leave(previousRoom.roomId);
+      await socket.leave(previousRoom.roomId);
       if (oldRoom && !oldRoom.deleted) io.to(oldRoom.room.roomId).emit(EVENTS.ROOM_STATE, rooms.publicState(oldRoom.room));
     }
     sessions.attachRoom(session.sessionToken, room.roomId);
-    socket.join(room.roomId);
+    await socket.join(room.roomId);
     ack({ ok: true, room: rooms.publicState(room), inviteUrl: `${publicAppUrl}/invite/${room.inviteCode}` });
     io.to(room.roomId).emit(EVENTS.ROOM_STATE, rooms.publicState(room));
   }));

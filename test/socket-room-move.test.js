@@ -1,4 +1,4 @@
-import test, { after, before } from 'node:test';
+import test, { after, afterEach, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, rmSync } from 'node:fs';
 import { io as createClient } from 'socket.io-client';
@@ -6,7 +6,7 @@ import { io as createClient } from 'socket.io-client';
 process.env.NODE_ENV = 'test';
 const testStateFile = `${process.cwd()}/data/test-platform-state-${process.pid}.json`;
 process.env.PLATFORM_DATA_FILE = testStateFile;
-const { httpServer } = await import('../server/index.js');
+const { httpServer, io } = await import('../server/index.js');
 
 let serverUrl;
 const clients = [];
@@ -22,7 +22,11 @@ function connect() {
 
 function ask(socket, event, payload = {}) {
   return new Promise((resolve, reject) => {
-    socket.timeout(1_000).emit(event, payload, (error, response) => error ? reject(error) : resolve(response));
+    socket.timeout(3_000).emit(event, payload, (error, response) => {
+      if (error) return reject(error);
+      if (!response) return reject(new Error(`${event} did not return an acknowledgement.`));
+      resolve(response);
+    });
   });
 }
 
@@ -34,10 +38,15 @@ before(async () => {
   serverUrl = `http://127.0.0.1:${port}`;
 });
 
+afterEach(async () => {
+  clients.splice(0).forEach((socket) => socket.disconnect());
+  await wait(50);
+});
+
 after(async () => {
   clients.forEach((socket) => socket.disconnect());
   await new Promise((resolve) => httpServer.close(resolve));
-  await wait(25);
+  await wait(100);
   rmSync(testStateFile, { force: true });
   for (const fileName of readdirSync(`${process.cwd()}/data`)) {
     if (fileName.startsWith(`test-platform-state-${process.pid}.json.`) && fileName.endsWith('.tmp')) rmSync(`${process.cwd()}/data/${fileName}`, { force: true });
@@ -53,11 +62,12 @@ test('moving to a new room stops old-room chat delivery', async () => {
   const oldRoom = await ask(firstHost, 'platform:room:create', { gameId: 'neon-dice', maxPlayers: 2 });
   await ask(oldRoomGuest, 'platform:room:join', { inviteCode: oldRoom.room.inviteCode });
   await ask(firstHost, 'platform:room:create', { gameId: 'neon-dice', maxPlayers: 2 });
+  assert.equal(io.sockets.adapter.rooms.get(oldRoom.room.roomId)?.has(firstHost.id) ?? false, false);
 
   const receivedMessages = [];
   firstHost.on('platform:chat:message', (message) => receivedMessages.push(message));
   await ask(oldRoomGuest, 'platform:chat:send', { text: '이전 방 메시지' });
-  await wait(100);
+  await wait(250);
 
   assert.equal(receivedMessages.length, 0);
 });
@@ -76,7 +86,7 @@ test('a failed new-room request keeps the player in the current room', async () 
   const receivedMessages = [];
   host.on('platform:chat:message', (message) => receivedMessages.push(message));
   await ask(guest, 'platform:chat:send', { text: '현재 방 메시지' });
-  await wait(100);
+  await wait(250);
 
   assert.equal(receivedMessages.length, 1);
   assert.equal(receivedMessages[0].text, '현재 방 메시지');
