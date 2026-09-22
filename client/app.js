@@ -11,7 +11,7 @@ const EVENTS = {
   CHAT_MESSAGE: 'platform:chat:message'
 };
 
-const ICONS = { dice: '⚄', yut: '✦', words: 'Aa', mine: '⛏', castle: '♜' };
+const ICONS = { dice: '⚄', yut: '✦', words: 'Aa', mine: '⛏', castle: '♜', clue: '🔎' };
 const PROFILE_AVATARS = ['🦊', '🐼', '🐯', '🐸', '🐙', '🦄', '🐧', '🐨'];
 const state = { session: null, games: [], room: null, inviteUrl: '', selectedGame: null, connected: false, liveRooms: [], online: [], needsNickname: false };
 const app = document.querySelector('#app');

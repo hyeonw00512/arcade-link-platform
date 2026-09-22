@@ -85,5 +85,22 @@
     "playUrl": "https://citydel-game.onrender.com",
     "statusUrl": "https://citydel-game.onrender.com/api/platform/rooms",
     "capabilities": { "canSpectate": true, "canReserveNextRound": false }
+  },
+  {
+    "id": "mystery-manor",
+    "name": "흑야 저택",
+    "description": "용의자와 장소, 도구를 추리해 저택의 사건을 해결하는 실시간 미스터리 게임입니다.",
+    "thumbnail": "clue",
+    "minPlayers": 3,
+    "maxPlayers": 6,
+    "supportedDevices": ["web", "android", "ios"],
+    "gameVersion": "0.1.0",
+    "enabled": true,
+    "featured": true,
+    "route": "/games/mystery-manor",
+    "serverModule": "mystery-manor",
+    "playUrl": "https://mystery-manor.onrender.com",
+    "statusUrl": "https://mystery-manor.onrender.com/api/platform/rooms",
+    "capabilities": { "canSpectate": false, "canReserveNextRound": false }
   }
 ]
