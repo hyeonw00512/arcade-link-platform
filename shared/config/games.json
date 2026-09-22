@@ -101,6 +101,6 @@
     "serverModule": "mystery-manor",
     "playUrl": "https://mystery-manor.onrender.com",
     "statusUrl": "https://mystery-manor.onrender.com/api/platform/rooms",
-    "capabilities": { "canSpectate": false, "canReserveNextRound": false }
+    "capabilities": { "canSpectate": true, "canReserveNextRound": false }
   }
 ]

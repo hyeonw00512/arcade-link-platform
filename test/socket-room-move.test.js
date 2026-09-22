@@ -1,6 +1,6 @@
 import test, { after, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { rmSync } from 'node:fs';
+import { readdirSync, rmSync } from 'node:fs';
 import { io as createClient } from 'socket.io-client';
 
 process.env.NODE_ENV = 'test';
@@ -39,6 +39,9 @@ after(async () => {
   await new Promise((resolve) => httpServer.close(resolve));
   await wait(25);
   rmSync(testStateFile, { force: true });
+  for (const fileName of readdirSync(`${process.cwd()}/data`)) {
+    if (fileName.startsWith(`test-platform-state-${process.pid}.json.`) && fileName.endsWith('.tmp')) rmSync(`${process.cwd()}/data/${fileName}`, { force: true });
+  }
 });
 
 test('moving to a new room stops old-room chat delivery', async () => {
