@@ -33,12 +33,12 @@
     "serverModule": "moon-yut",
     "playUrl": "https://yutnori-online-71vm.onrender.com",
     "statusUrl": "https://yutnori-online-71vm.onrender.com/api/platform/rooms",
-    "capabilities": { "canSpectate": true, "canReserveNextRound": false }
+    "capabilities": { "canSpectate": true, "canReserveNextRound": true }
   },
   {
     "id": "echo-words",
     "name": "단어 맞추기",
-    "description": "연상 힌트를 주고받으며 제한 시간 안에 정답을 찾는 파티 게임입니다.",
+    "description": "같은 시작 단어에서 떠오른 단어를 동시에 제출해 서로의 생각이 만나는지 맞히는 파티 게임입니다.",
     "thumbnail": "words",
     "minPlayers": 2,
     "maxPlayers": 10,
