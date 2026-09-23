@@ -14,11 +14,68 @@ const EVENTS = {
 
 const ICONS = { dice: '⚄', yut: '✦', words: 'Aa', mine: '⛏', castle: '♜', clue: '🔎' };
 const PROFILE_AVATARS = ['🦊', '🐼', '🐯', '🐸', '🐙', '🦄', '🐧', '🐨'];
-const state = { session: null, games: [], room: null, inviteUrl: '', selectedGame: null, connected: false, liveRooms: [], online: [], presenceSummary: null, needsNickname: false };
+const DEFAULT_PREFERENCES = { motion: 'system', sound: true, haptics: true };
+const state = { session: null, games: [], room: null, inviteUrl: '', selectedGame: null, connected: false, liveRooms: [], online: [], presenceSummary: null, needsNickname: false, preferences: loadPreferences(), busyCount: 0 };
 const app = document.querySelector('#app');
 const toastNode = document.querySelector('#toast');
+const uiLayer = document.querySelector('#ui-layer');
 const socket = io({ autoConnect: true, reconnection: true, reconnectionDelayMax: 4000 });
 let liveRefreshTimer = null;
+let uiAudioContext = null;
+
+function loadPreferences() {
+  try { return { ...DEFAULT_PREFERENCES, ...JSON.parse(localStorage.getItem('arcade-link-preferences') || '{}') }; } catch { return { ...DEFAULT_PREFERENCES }; }
+}
+
+function savePreferences(next) {
+  state.preferences = { ...state.preferences, ...next };
+  localStorage.setItem('arcade-link-preferences', JSON.stringify(state.preferences));
+  applyPreferences();
+}
+
+function applyPreferences() {
+  document.documentElement.dataset.motion = state.preferences.motion;
+}
+
+function playUiFeedback() {
+  if (state.preferences.haptics && navigator.vibrate) navigator.vibrate(8);
+  if (!state.preferences.sound) return;
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const context = uiAudioContext || (uiAudioContext = new AudioContext());
+    if (context.state === 'suspended') context.resume();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.frequency.value = 440;
+    gain.gain.setValueAtTime(.025, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.001, context.currentTime + .06);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start(); oscillator.stop(context.currentTime + .06);
+  } catch { /* Audio feedback is optional. */ }
+}
+
+function setBusy(active, label = '처리 중…') {
+  state.busyCount = Math.max(0, state.busyCount + (active ? 1 : -1));
+  const overlay = uiLayer.querySelector('.busy-overlay');
+  if (state.busyCount > 0) {
+    if (overlay) overlay.querySelector('span').textContent = label;
+    else uiLayer.insertAdjacentHTML('beforeend', `<div class="busy-overlay" role="status"><i></i><span>${escapeHtml(label)}</span></div>`);
+  } else overlay?.remove();
+}
+
+function confirmDialog({ title, message, confirmLabel = '계속하기', danger = false }) {
+  return new Promise((resolve) => {
+    const dialog = document.createElement('div');
+    dialog.className = 'dialog-backdrop';
+    dialog.innerHTML = `<section class="dialog-card" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><p class="eyebrow">CONFIRM</p><h2 id="dialog-title">${escapeHtml(title)}</h2><p class="muted">${escapeHtml(message)}</p><div class="dialog-actions"><button class="button secondary" data-dialog-cancel>취소</button><button class="button ${danger ? 'danger' : ''}" data-dialog-confirm>${escapeHtml(confirmLabel)}</button></div></section>`;
+    const close = (result) => { dialog.remove(); resolve(result); };
+    dialog.querySelector('[data-dialog-cancel]').addEventListener('click', () => close(false));
+    dialog.querySelector('[data-dialog-confirm]').addEventListener('click', () => close(true));
+    dialog.addEventListener('click', (event) => { if (event.target === dialog) close(false); });
+    uiLayer.append(dialog);
+    dialog.querySelector('[data-dialog-confirm]').focus();
+  });
+}
 
 function emit(event, payload = {}) {
   return new Promise((resolve, reject) => {
@@ -51,12 +108,13 @@ function shell(content, active = 'home', theme = 'platform') {
         <a href="#all-games" data-games-link class="nav-item ${active === 'games' ? 'active' : ''}">◇ 게임</a>
         <a href="#" class="nav-item" data-soon>♧ 친구 <span class="chip">준비 중</span></a>
         <a href="#" class="nav-item" data-soon>◎ 알림</a>
+        <a href="#" class="nav-item" data-open-settings>⚙ 설정</a>
       </nav>
       <a class="sidebar-user" href="/profile" data-link aria-label="내 프로필 열기"><span class="avatar">${session.avatar}</span><div><strong>${escapeHtml(session.nickname)}</strong><div class="muted">게스트 플레이어 · 편집</div></div></a>
     </aside>
     <main class="content theme-${escapeHtml(theme)}">${content}</main>
     <nav class="mobile-nav" aria-label="모바일 메뉴">
-      <a href="/" data-link><span>⌂</span>홈</a><a href="#all-games" data-games-link><span>◇</span>게임</a><a href="#" data-soon><span>♧</span>친구</a><a href="/profile" data-link class="${active === 'profile' ? 'active' : ''}"><span>${session.avatar}</span>내 정보</a>
+      <a href="/" data-link><span>⌂</span>홈</a><a href="#all-games" data-games-link><span>◇</span>게임</a><a href="#" data-open-settings><span>⚙</span>설정</a><a href="/profile" data-link class="${active === 'profile' ? 'active' : ''}"><span>${session.avatar}</span>내 정보</a>
     </nav>`;
 }
 
@@ -233,10 +291,12 @@ function messageHtml(message) {
 }
 
 function bindCommon() {
+  document.querySelectorAll('button, .button').forEach((control) => control.addEventListener('pointerup', () => playUiFeedback(), { passive: true }));
   document.querySelectorAll('[data-link]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); navigate(link.getAttribute('href')); }));
   document.querySelectorAll('[data-games-link]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); goToGames(); }));
   document.querySelectorAll('[data-game]').forEach((button) => button.addEventListener('click', () => navigate(`/games/${button.dataset.game}`)));
   document.querySelectorAll('[data-soon]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); toast('다음 단계에서 제공될 기능입니다.'); }));
+  document.querySelectorAll('[data-open-settings]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); openSettings(); }));
   document.querySelectorAll('a[data-play]').forEach((link) => link.addEventListener('click', async (event) => {
     const roomCode = new URL(link.href).searchParams.get('room');
     if (!roomCode || !state.session?.sessionToken) return;
@@ -245,23 +305,26 @@ function bindCommon() {
     const activeRoom = activeRooms[gameId];
     if (activeRoom && activeRoom.roomCode !== roomCode && activeRoom.mode !== 'SPECTATOR') {
       const gameName = state.games.find((game) => game.id === gameId)?.name || '이 게임';
-      if (!window.confirm(`${gameName} ${activeRoom.roomCode} 방에서 플레이 중입니다.\n기존 방을 나가고 ${roomCode} 방에 참여하시겠습니까?`)) return;
+      const accepted = await confirmDialog({ title: '기존 플레이 방을 나갈까요?', message: `${gameName} ${activeRoom.roomCode} 방에서 플레이 중입니다. 나가고 ${roomCode} 방에 참여합니다.`, confirmLabel: '새 방 참여' });
+      if (!accepted) return;
     }
     event.preventDefault();
     try {
       const mode = link.dataset.reserveNext !== undefined ? 'RESERVE' : link.textContent.includes('관전') ? 'SPECTATOR' : 'PLAYER';
+      setBusy(true, '게임방 입장을 준비하고 있어요…');
       const response = await fetch('/api/join-link', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionToken: state.session.sessionToken, gameId, roomCode, mode }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message);
       activeRooms[gameId] = { roomCode, mode };
       localStorage.setItem('arcade-link-active-game-rooms', JSON.stringify(activeRooms));
       location.assign(result.url);
-    } catch (error) { toast(error.message || '자동 입장을 준비하지 못했습니다.'); }
+    } catch (error) { toast(error.message || '자동 입장을 준비하지 못했습니다.'); } finally { setBusy(false); }
   }));
   document.querySelectorAll('a[data-launch-game]').forEach((link) => link.addEventListener('click', async (event) => {
     if (!state.session?.sessionToken) return;
     event.preventDefault();
     try {
+      setBusy(true, '새 게임을 준비하고 있어요…');
       const response = await fetch('/api/game-launch-link', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -270,7 +333,7 @@ function bindCommon() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.message);
       location.assign(result.url);
-    } catch (error) { toast(error.message || '게임 실행을 준비하지 못했습니다.'); }
+    } catch (error) { toast(error.message || '게임 실행을 준비하지 못했습니다.'); } finally { setBusy(false); }
   }));
 }
 
@@ -279,6 +342,22 @@ function readActiveGameRooms() {
     const value = JSON.parse(localStorage.getItem('arcade-link-active-game-rooms') || '{}');
     return value && typeof value === 'object' ? value : {};
   } catch { return {}; }
+}
+
+function openSettings() {
+  const dialog = document.createElement('div');
+  dialog.className = 'dialog-backdrop';
+  dialog.innerHTML = `<section class="dialog-card settings-card" role="dialog" aria-modal="true" aria-labelledby="settings-title"><p class="eyebrow">PLAY COMFORT</p><h2 id="settings-title">플레이 설정</h2><p class="muted">이 기기에서만 적용됩니다.</p><label class="setting-row"><span><strong>화면 모션</strong><small>전환과 강조 애니메이션</small></span><select class="input" data-setting-motion><option value="system">기기 설정 따르기</option><option value="full">모션 사용</option><option value="reduce">모션 줄이기</option></select></label><label class="setting-row"><span><strong>버튼 효과음</strong><small>가벼운 탭 소리</small></span><input type="checkbox" data-setting-sound ${state.preferences.sound ? 'checked' : ''}></label><label class="setting-row"><span><strong>터치 진동</strong><small>지원되는 휴대폰에서만 작동</small></span><input type="checkbox" data-setting-haptics ${state.preferences.haptics ? 'checked' : ''}></label><div class="dialog-actions"><button class="button secondary" data-settings-close>닫기</button><button class="button" data-settings-save>저장</button></div></section>`;
+  dialog.querySelector('[data-setting-motion]').value = state.preferences.motion;
+  const close = () => dialog.remove();
+  dialog.querySelector('[data-settings-close]').addEventListener('click', close);
+  dialog.querySelector('[data-settings-save]').addEventListener('click', () => {
+    savePreferences({ motion: dialog.querySelector('[data-setting-motion]').value, sound: dialog.querySelector('[data-setting-sound]').checked, haptics: dialog.querySelector('[data-setting-haptics]').checked });
+    toast('플레이 설정을 저장했습니다.'); close();
+  });
+  dialog.addEventListener('click', (event) => { if (event.target === dialog) close(); });
+  uiLayer.append(dialog);
+  dialog.querySelector('[data-settings-close]').focus();
 }
 
 function scrollToGames() {
@@ -297,19 +376,21 @@ function goToGames() {
 
 async function createRoom(event) {
   event.preventDefault();
+  setBusy(true, '방을 만들고 있어요…');
   try {
     const response = await emit(EVENTS.ROOM_CREATE, { gameId: state.selectedGame.id, maxPlayers: Number(document.querySelector('#maxPlayers').value), isPrivate: document.querySelector('#privateRoom').checked });
     state.room = response.room; state.inviteUrl = response.inviteUrl; navigate(`/room/${state.room.roomId}`);
-  } catch (error) { toast(error.message); }
+  } catch (error) { toast(error.message); } finally { setBusy(false); }
 }
 
 async function joinRoom(eventOrCode) {
   if (eventOrCode?.preventDefault) eventOrCode.preventDefault();
   const inviteCode = typeof eventOrCode === 'string' ? eventOrCode : document.querySelector('#joinCode')?.value;
+  setBusy(true, '방에 입장하고 있어요…');
   try {
     const response = await emit(EVENTS.ROOM_JOIN, { inviteCode });
     state.room = response.room; state.inviteUrl = response.inviteUrl; navigate(`/room/${state.room.roomId}`);
-  } catch (error) { toast(error.message); }
+  } catch (error) { toast(error.message); } finally { setBusy(false); }
 }
 
 function showJoinPrompt() {
@@ -439,6 +520,7 @@ socket.on(EVENTS.CHAT_MESSAGE, (message) => {
   if (messages) { if (messages.querySelector('.muted:only-child')) messages.innerHTML = ''; messages.insertAdjacentHTML('beforeend', messageHtml(message)); scrollMessages(); }
 });
 window.addEventListener('popstate', route);
+applyPreferences();
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     emit(EVENTS.PRESENCE_HEARTBEAT).catch(() => {});
