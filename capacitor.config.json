@@ -1,0 +1,10 @@
+{
+  "appId": "com.arcadelink.platform",
+  "appName": "Arcade Link",
+  "webDir": "client",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "allowNavigation": ["*.onrender.com"]
+  }
+}

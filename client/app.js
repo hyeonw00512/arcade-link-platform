@@ -20,7 +20,13 @@ const state = { session: null, games: [], room: null, inviteUrl: '', selectedGam
 const app = document.querySelector('#app');
 const toastNode = document.querySelector('#toast');
 const uiLayer = document.querySelector('#ui-layer');
-const socket = io({ autoConnect: true, reconnection: true, reconnectionDelayMax: 4000 });
+// 웹에서는 빈 값으로 현재 사이트를 사용하고, Capacitor 앱 빌드에서는
+// runtime-config.js가 실제 플랫폼 서버 주소를 넣는다.
+const runtimeConfig = globalThis.ARCADE_LINK_RUNTIME_CONFIG || {};
+const apiBaseUrl = String(runtimeConfig.apiBaseUrl || '').replace(/\/$/, '');
+const platformPublicUrl = String(runtimeConfig.platformUrl || apiBaseUrl || location.origin).replace(/\/$/, '');
+const apiUrl = (path) => `${apiBaseUrl}${path}`;
+const socket = io(apiBaseUrl || undefined, { autoConnect: true, reconnection: true, reconnectionDelayMax: 4000 });
 let liveRefreshTimer = null;
 let liveRoomsRequest = null;
 let uiAudioContext = null;
@@ -340,7 +346,7 @@ function bindCommon(scope = document) {
     try {
       const mode = link.dataset.reserveNext !== undefined ? 'RESERVE' : link.textContent.includes('관전') ? 'SPECTATOR' : 'PLAYER';
       setBusy(true, '게임방 입장을 준비하고 있어요…');
-      const response = await fetch('/api/join-link', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionToken: state.session.sessionToken, gameId, roomCode, mode }) });
+      const response = await fetch(apiUrl('/api/join-link'), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionToken: state.session.sessionToken, gameId, roomCode, mode }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message);
       activeRooms[gameId] = { roomCode, mode };
@@ -353,7 +359,7 @@ function bindCommon(scope = document) {
     event.preventDefault();
     try {
       setBusy(true, '새 게임을 준비하고 있어요…');
-      const response = await fetch('/api/game-launch-link', {
+      const response = await fetch(apiUrl('/api/game-launch-link'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ sessionToken: state.session.sessionToken, gameId: link.dataset.launchGame })
@@ -442,7 +448,7 @@ async function sendChat(event) {
 }
 
 async function copyInvite() {
-  const url = `${location.origin}/invite/${state.room.inviteCode}`;
+  const url = new URL(`/invite/${state.room.inviteCode}`, platformPublicUrl).toString();
   try { await navigator.clipboard.writeText(url); toast('초대 링크를 복사했습니다.'); } catch { toast(url); }
 }
 
@@ -457,8 +463,8 @@ function navigate(path) {
 }
 
 function withPlatformUrl(gameUrl) {
-  const url = new URL(gameUrl, location.origin);
-  url.searchParams.set('platformUrl', location.origin);
+  const url = new URL(gameUrl, platformPublicUrl);
+  url.searchParams.set('platformUrl', platformPublicUrl);
   if (state.session?.nickname) url.searchParams.set('platformNickname', state.session.nickname);
   return url.toString();
 }
@@ -515,7 +521,7 @@ async function fetchLiveRooms() {
   if (liveRoomsRequest) return liveRoomsRequest;
   liveRoomsRequest = (async () => {
   try {
-    const response = await fetch('/api/live-rooms', { cache: 'no-store' });
+    const response = await fetch(apiUrl('/api/live-rooms'), { cache: 'no-store' });
     if (!response.ok) throw new Error();
     const nextRooms = await response.json();
     // Polling is a safety net. Avoid rebuilding the page when the received
@@ -550,7 +556,7 @@ function startLiveRefresh() {
 
 async function fetchPresence() {
   try {
-    const response = await fetch('/api/presence');
+    const response = await fetch(apiUrl('/api/presence'));
     if (response.ok) applyPresence(await response.json());
   } catch { /* Keep the last known list instead of flashing an empty state. */ }
 }

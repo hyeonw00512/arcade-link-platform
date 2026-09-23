@@ -51,4 +51,18 @@ npm start
 
 배포 후 `https://배포주소/api/health`가 `{"ok":true}`를 반환하면 정상입니다. 깊은갱도처럼 공개 방 목록 API를 제공하는 게임은 플랫폼 홈의 **지금 참가할 수 있는 방**에 자동 표시됩니다.
 
-Capacitor 패키징 시 웹 자산은 `client/`을 재사용하고, 서버 주소는 앱 빌드 환경 변수로 주입하는 구조로 확장할 수 있습니다.
+## Android / iOS 앱 패키징
+
+플랫폼 웹 화면은 `client/` 하나를 그대로 재사용합니다. Android 프로젝트는 이미 `android/`에 생성되어 있으며, 앱에는 웹 서버 주소가 없으므로 빌드 전 실제 플랫폼 주소를 지정해야 합니다.
+
+PowerShell에서 다음처럼 실행합니다.
+
+```powershell
+$env:PLATFORM_API_URL = 'https://배포된-플랫폼주소'
+npm run app:sync
+npm run app:android
+```
+
+`app:sync`는 웹 자산을 Android/iOS 프로젝트로 복사한 뒤, **앱 내부에만** 서버 주소를 기록합니다. 웹 배포용 `client/runtime-config.js`는 빈 값으로 유지되므로 로컬 웹 개발과 Render 배포에 영향을 주지 않습니다.
+
+iOS는 Xcode가 설치된 macOS에서 `npx cap add ios`를 한 번 실행한 뒤 같은 `PLATFORM_API_URL` 설정으로 `npm run app:ios`를 실행하면 됩니다. 앱과 웹은 같은 플랫폼 API·Socket.IO 서버를 쓰므로 동일한 방에서 함께 플레이합니다.

@@ -15,7 +15,16 @@
   <div id="app" class="app-shell" aria-live="polite"></div>
   <div id="toast" class="toast" role="status"></div>
   <div id="ui-layer" class="ui-layer" aria-live="polite"></div>
-  <script src="/socket.io/socket.io.js"></script>
-  <script type="module" src="/app.js"></script>
+  <script src="/runtime-config.js"></script>
+  <script>
+    (() => {
+      const apiBaseUrl = String(window.ARCADE_LINK_RUNTIME_CONFIG?.apiBaseUrl || '').replace(/\/$/, '');
+      const socketScript = document.createElement('script');
+      socketScript.src = `${apiBaseUrl}/socket.io/socket.io.js`;
+      socketScript.onload = () => import('/app.js');
+      socketScript.onerror = () => { document.querySelector('#app').textContent = '플랫폼 서버에 연결하지 못했습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.'; };
+      document.head.append(socketScript);
+    })();
+  </script>
 </body>
 </html>
