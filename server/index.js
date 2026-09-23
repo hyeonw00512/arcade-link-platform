@@ -12,6 +12,7 @@ import { LiveRoomService } from './platform/games/live-room-service.js';
 import { createJoinToken } from './platform/auth/join-token.js';
 import { createActivityToken, verifyActivityToken } from './platform/auth/activity-token.js';
 import { PresenceService } from './platform/presence/presence-service.js';
+import { EVENTS } from '../shared/protocol/events.js';
 
 const clientDir = fileURLToPath(new URL('../client', import.meta.url));
 const games = await loadGameCatalog();
@@ -28,7 +29,16 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: { origin: process.env.CLIENT_ORIGIN || '*' },
-  transports: ['websocket', 'polling']
+  transports: ['websocket', 'polling'],
+  // Closing a browser normally sends disconnect immediately. This keeps the
+  // fallback for an abrupt Wi-Fi/app loss short as well.
+  pingInterval: 5_000,
+  pingTimeout: 7_000
+});
+
+const publishPresence = () => io.emit(EVENTS.PRESENCE_UPDATE, {
+  online: presence.list(),
+  summary: presence.summary()
 });
 
 app.disable('x-powered-by');
@@ -48,6 +58,7 @@ app.post('/api/activity', (req, res) => {
     const status = String(req.body?.status || 'LOBBY').toUpperCase();
     if (!['LOBBY', 'PLAYING', 'SPECTATING'].includes(status)) throw new Error('활동 상태가 올바르지 않습니다.');
     presence.touch(payload, `${payload.gameId}:${status}`);
+    publishPresence();
     res.set('access-control-allow-origin', '*').json({ ok: true });
   } catch (error) { res.set('access-control-allow-origin', '*').status(400).json({ message: error.message }); }
 });
@@ -96,6 +107,7 @@ io.on('connection', (socket) => registerPlatformEvents(io, socket, {
   rooms,
   games,
   presence,
+  onPresenceChanged: publishPresence,
   publicAppUrl: process.env.PUBLIC_APP_URL || `http://localhost:${process.env.PORT || 3000}`
 }));
 

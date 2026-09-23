@@ -2,7 +2,7 @@ import { EVENTS } from '../../../shared/protocol/events.js';
 
 const ACK_ERROR = (error) => ({ ok: false, error: error.message || '요청을 처리하지 못했습니다.' });
 
-export function registerPlatformEvents(io, socket, { sessions, rooms, games, publicAppUrl, presence }) {
+export function registerPlatformEvents(io, socket, { sessions, rooms, games, publicAppUrl, presence, onPresenceChanged }) {
   let session = null;
   const attempts = [];
 
@@ -28,7 +28,8 @@ export function registerPlatformEvents(io, socket, { sessions, rooms, games, pub
   socket.on(EVENTS.SESSION_RESUME, (payload = {}, ack = () => {}) => {
     try {
       session = sessions.resume(payload.sessionToken) || sessions.create(payload.nickname);
-      presence?.touch(session, 'PLATFORM');
+      presence?.connect(session, socket.id);
+      onPresenceChanged?.();
       if (!sessions.resume(session.sessionToken)) session = sessions.resume(session.sessionToken);
       const restoredRoom = session.roomId ? rooms.reconnect(session.roomId, session) : null;
       if (restoredRoom) socket.join(restoredRoom.roomId);
@@ -49,6 +50,8 @@ export function registerPlatformEvents(io, socket, { sessions, rooms, games, pub
 
   socket.on(EVENTS.PROFILE_UPDATE, guard((payload = {}, ack) => {
     session = sessions.updateProfile(session.sessionToken, payload);
+    presence?.touch(session, 'PLATFORM');
+    onPresenceChanged?.();
     const room = rooms.updatePlayerProfile(session.userId, session);
     if (room) io.to(room.roomId).emit(EVENTS.ROOM_STATE, rooms.publicState(room));
     ack({ ok: true, session: sessions.publicSession(session) });
@@ -112,6 +115,10 @@ export function registerPlatformEvents(io, socket, { sessions, rooms, games, pub
   }));
   socket.on('disconnect', () => {
     if (!session) return;
+    // A game page reports its own activity. Do not erase that state when the
+    // user navigates away from the platform tab; only remove platform-only
+    // visitors here.
+    if (presence?.disconnect(session, socket.id)) onPresenceChanged?.();
     const room = rooms.disconnect(session.userId);
     if (room) io.to(room.roomId).emit(EVENTS.ROOM_STATE, rooms.publicState(room));
   });

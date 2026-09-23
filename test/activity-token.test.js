@@ -22,3 +22,23 @@ test('presence summary separates platform, lobby, play, and spectator activity',
     games: { 'moon-yut': 2, sabotaji: 1 }
   });
 });
+
+test('platform-only presence can be removed immediately on socket disconnect', () => {
+  const presence = new PresenceService();
+  presence.touch({ userId: 'visitor', nickname: '방문자', avatar: '🦊' }, 'PLATFORM');
+  presence.touch({ userId: 'player', nickname: '플레이어', avatar: '🐯' }, 'moon-yut:PLAYING');
+  assert.equal(presence.remove('visitor', 'PLATFORM'), true);
+  assert.equal(presence.remove('player', 'PLATFORM'), false);
+  assert.equal(presence.list().length, 1);
+});
+
+test('closing one of a user\'s platform tabs keeps their other tab online', () => {
+  const presence = new PresenceService();
+  const user = { userId: 'two-tabs', nickname: '두 탭', avatar: '🦊' };
+  presence.connect(user, 'socket-a');
+  presence.connect(user, 'socket-b');
+  assert.equal(presence.disconnect(user, 'socket-a'), false);
+  assert.equal(presence.list().length, 1);
+  assert.equal(presence.disconnect(user, 'socket-b'), true);
+  assert.equal(presence.list().length, 0);
+});

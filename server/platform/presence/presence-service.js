@@ -1,8 +1,34 @@
 export class PresenceService {
-  constructor(timeoutMs = 75_000) { this.timeoutMs = timeoutMs; this.entries = new Map(); }
+  constructor(timeoutMs = 75_000) {
+    this.timeoutMs = timeoutMs;
+    this.entries = new Map();
+    this.platformSockets = new Map();
+  }
   touch(session, status = 'PLATFORM') {
     if (!session?.userId) return;
     this.entries.set(session.userId, { userId: session.userId, nickname: session.nickname, avatar: session.avatar, status, seenAt: Date.now() });
+  }
+  remove(userId, status = null) {
+    const entry = this.entries.get(userId);
+    if (!entry || (status && entry.status !== status)) return false;
+    this.entries.delete(userId);
+    return true;
+  }
+  connect(session, socketId) {
+    if (!session?.userId || !socketId) return;
+    const sockets = this.platformSockets.get(session.userId) || new Set();
+    sockets.add(socketId);
+    this.platformSockets.set(session.userId, sockets);
+    this.touch(session, 'PLATFORM');
+  }
+  disconnect(session, socketId) {
+    if (!session?.userId || !socketId) return false;
+    const sockets = this.platformSockets.get(session.userId);
+    sockets?.delete(socketId);
+    if (sockets?.size) return false;
+    this.platformSockets.delete(session.userId);
+    // An external game may have replaced PLATFORM with its own active state.
+    return this.remove(session.userId, 'PLATFORM');
   }
   list() {
     const cutoff = Date.now() - this.timeoutMs;

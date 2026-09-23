@@ -1,6 +1,7 @@
 const EVENTS = {
   SESSION_RESUME: 'platform:session:resume',
   PRESENCE_HEARTBEAT: 'platform:presence:heartbeat',
+  PRESENCE_UPDATE: 'platform:presence:update',
   PROFILE_UPDATE: 'platform:profile:update',
   ROOM_CREATE: 'platform:room:create',
   ROOM_JOIN: 'platform:room:join',
@@ -154,6 +155,25 @@ function presenceOverview() {
   ].filter(([, count]) => count > 0).map(([label, count, kind]) => `<span class="presence-chip ${kind}">${label} ${count}</span>`).join('');
 }
 
+function homeLiveRoomsSection() {
+  const liveRooms = state.liveRooms.flatMap((entry) => entry.rooms.map((room) => ({ ...room, game: state.games.find((game) => game.id === entry.gameId) }))).filter((item) => item.game);
+  if (!liveRooms.length) return '<section class="section" id="home-live-rooms" hidden></section>';
+  return `<section class="section" id="home-live-rooms"><div class="section-head"><div><p class="eyebrow">LIVE ROOMS</p><h2>지금 열려 있는 방</h2></div><span class="muted">참가 · 관전 · 다음 판 상태</span></div><div class="live-room-list">${liveRooms.map((item) => liveRoomCard(item, item.game, true)).join('')}</div></section>`;
+}
+
+function homePresenceSection() {
+  return `<section class="section" id="home-presence"><div class="section-head"><div><p class="eyebrow">ONLINE NOW</p><h2>함께 접속 중인 사용자</h2><div class="presence-overview">${presenceOverview() || '<span class="presence-chip platform">접속 현황 수집 중</span>'}</div></div><span class="chip">${state.online.length}명 온라인</span></div><div class="online-list">${state.online.length ? state.online.map((user) => `<div class="online-user"><span class="avatar">${user.avatar}</span><div><strong>${escapeHtml(user.nickname)}</strong><p class="muted">${escapeHtml(activityLabel(user.status))}</p></div><i class="status-dot online"></i></div>`).join('') : '<div class="empty-card"><strong>현재 표시할 사용자가 없습니다.</strong><p class="muted" style="margin:8px 0 0">플랫폼에 접속하면 여기에 표시됩니다.</p></div>'}</div></section>`;
+}
+
+function refreshHomeSection(id, markup) {
+  const previous = document.querySelector(id);
+  if (!previous) return false;
+  previous.outerHTML = markup;
+  const replacement = document.querySelector(id);
+  if (replacement) bindCommon(replacement);
+  return true;
+}
+
 function liveRoomCard(room, game, includeGame = false) {
   const status = roomStatus(room);
   return `<article class="live-room status-${status.kind}">
@@ -165,14 +185,13 @@ function liveRoomCard(room, game, includeGame = false) {
 }
 
 function renderHome() {
-  const liveRooms = state.liveRooms.flatMap((entry) => entry.rooms.map((room) => ({ ...room, game: state.games.find((game) => game.id === entry.gameId) }))).filter((item) => item.game);
   const roomGame = state.room && state.games.find((game) => game.id === state.room.gameType);
   app.innerHTML = shell(`
     <header class="topbar"><div><p class="eyebrow">PLAY TOGETHER</p><h1>오늘은 무엇을<br>같이 해볼까요?</h1><p class="muted">PC와 모바일에서 같은 게임방으로 바로 만나요.</p></div><button class="button" data-scroll-games>게임 고르기</button></header>
     ${state.room ? `<section class="section"><div class="section-head"><h2>참여 중인 방</h2></div><div class="resume-card"><div><span class="chip">${state.room.status === 'WAITING' ? '로비 대기 중' : '게임 시작됨'}</span><h3 style="margin-top:12px">${escapeHtml(roomGame?.name || state.room.gameType)}</h3><p class="muted">방 코드 ${state.room.inviteCode} · ${state.room.players.length}/${state.room.maxPlayers}명</p></div><button class="button" data-resume-room>방으로 돌아가기</button></div></section>` : ''}
     <section class="quick-start" aria-label="게임 시작 안내"><div class="quick-start-title"><span aria-hidden="true">✦</span><div><strong>플랫폼에서 방을 찾아 바로 시작하세요</strong><p>공개 방은 여기서 참가·관전하고, 새 방은 게임별 규칙을 정한 뒤 초대 링크로 친구를 부릅니다.</p></div></div><ol><li><span>1</span>게임 선택</li><li><span>2</span>방 참가 또는 생성</li><li><span>3</span>함께 플레이</li></ol></section>
-    ${liveRooms.length ? `<section class="section"><div class="section-head"><div><p class="eyebrow">LIVE ROOMS</p><h2>지금 열려 있는 방</h2></div><span class="muted">참가 · 관전 · 다음 판 상태</span></div><div class="live-room-list">${liveRooms.map((item) => liveRoomCard(item, item.game, true)).join('')}</div></section>` : ''}
-    <section class="section"><div class="section-head"><div><p class="eyebrow">ONLINE NOW</p><h2>함께 접속 중인 사용자</h2><div class="presence-overview">${presenceOverview() || '<span class="presence-chip platform">접속 현황 수집 중</span>'}</div></div><span class="chip">${state.online.length}명 온라인</span></div><div class="online-list">${state.online.length ? state.online.map((user) => `<div class="online-user"><span class="avatar">${user.avatar}</span><div><strong>${escapeHtml(user.nickname)}</strong><p class="muted">${escapeHtml(activityLabel(user.status))}</p></div><i class="status-dot online"></i></div>`).join('') : '<div class="empty-card"><strong>현재 표시할 사용자가 없습니다.</strong><p class="muted" style="margin:8px 0 0">플랫폼에 접속하면 여기에 표시됩니다.</p></div>'}</div></section>
+    ${homeLiveRoomsSection()}
+    ${homePresenceSection()}
     <section class="section" id="all-games"><div class="section-head"><h2>전체 게임</h2><span class="muted">${state.games.length}개</span></div><div class="game-grid">${state.games.map(gameCard).join('')}</div></section>
   `);
   bindCommon();
@@ -290,14 +309,14 @@ function messageHtml(message) {
   return `<div class="message"><div class="message-head"><span>${message.avatar}</span><strong>${escapeHtml(message.nickname)}</strong><time>${new Date(message.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</time></div><p>${escapeHtml(message.text)}</p></div>`;
 }
 
-function bindCommon() {
-  document.querySelectorAll('button, .button').forEach((control) => control.addEventListener('pointerup', () => playUiFeedback(), { passive: true }));
-  document.querySelectorAll('[data-link]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); navigate(link.getAttribute('href')); }));
-  document.querySelectorAll('[data-games-link]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); goToGames(); }));
-  document.querySelectorAll('[data-game]').forEach((button) => button.addEventListener('click', () => navigate(`/games/${button.dataset.game}`)));
-  document.querySelectorAll('[data-soon]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); toast('다음 단계에서 제공될 기능입니다.'); }));
-  document.querySelectorAll('[data-open-settings]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); openSettings(); }));
-  document.querySelectorAll('a[data-play]').forEach((link) => link.addEventListener('click', async (event) => {
+function bindCommon(scope = document) {
+  scope.querySelectorAll('button, .button').forEach((control) => control.addEventListener('pointerup', () => playUiFeedback(), { passive: true }));
+  scope.querySelectorAll('[data-link]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); navigate(link.getAttribute('href')); }));
+  scope.querySelectorAll('[data-games-link]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); goToGames(); }));
+  scope.querySelectorAll('[data-game]').forEach((button) => button.addEventListener('click', () => navigate(`/games/${button.dataset.game}`)));
+  scope.querySelectorAll('[data-soon]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); toast('다음 단계에서 제공될 기능입니다.'); }));
+  scope.querySelectorAll('[data-open-settings]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); openSettings(); }));
+  scope.querySelectorAll('a[data-play]').forEach((link) => link.addEventListener('click', async (event) => {
     const roomCode = new URL(link.href).searchParams.get('room');
     if (!roomCode || !state.session?.sessionToken) return;
     const gameId = link.dataset.play;
@@ -320,7 +339,7 @@ function bindCommon() {
       location.assign(result.url);
     } catch (error) { toast(error.message || '자동 입장을 준비하지 못했습니다.'); } finally { setBusy(false); }
   }));
-  document.querySelectorAll('a[data-launch-game]').forEach((link) => link.addEventListener('click', async (event) => {
+  scope.querySelectorAll('a[data-launch-game]').forEach((link) => link.addEventListener('click', async (event) => {
     if (!state.session?.sessionToken) return;
     event.preventDefault();
     try {
@@ -486,7 +505,12 @@ async function fetchLiveRooms() {
   try {
     const response = await fetch('/api/live-rooms');
     if (!response.ok) throw new Error();
-    state.liveRooms = await response.json();
+    const nextRooms = await response.json();
+    // Polling is a safety net. Avoid rebuilding the page when the received
+    // room list is identical, which previously caused a visible flash.
+    if (JSON.stringify(nextRooms) === JSON.stringify(state.liveRooms)) return;
+    state.liveRooms = nextRooms;
+    if (location.pathname === '/' && refreshHomeSection('#home-live-rooms', homeLiveRoomsSection())) return;
     route();
   } catch {
     state.liveRooms = [];
@@ -507,11 +531,27 @@ function startLiveRefresh() {
 }
 
 async function fetchPresence() {
-  try { const response = await fetch('/api/presence'); if (response.ok) { const payload = await response.json(); state.online = payload.online || []; state.presenceSummary = payload.summary || null; } } catch { state.online = []; state.presenceSummary = null; }
+  try {
+    const response = await fetch('/api/presence');
+    if (response.ok) applyPresence(await response.json());
+  } catch { /* Keep the last known list instead of flashing an empty state. */ }
+}
+
+function applyPresence(payload) {
+  const nextOnline = payload.online || [];
+  const nextSummary = payload.summary || null;
+  if (JSON.stringify(nextOnline) === JSON.stringify(state.online) && JSON.stringify(nextSummary) === JSON.stringify(state.presenceSummary)) return;
+  state.online = nextOnline;
+  state.presenceSummary = nextSummary;
+  // Presence is the only live section that changes here. Re-rendering the
+  // complete route reset scroll position and made the whole platform flicker.
+  if (location.pathname === '/' && refreshHomeSection('#home-presence', homePresenceSection())) return;
+  if (location.pathname === '/') route();
 }
 
 socket.on('connect', () => { resumeSession(); startLiveRefresh(); });
 socket.on('disconnect', () => { state.connected = false; toast('연결이 끊겼습니다. 자동으로 다시 연결합니다.'); });
+socket.on(EVENTS.PRESENCE_UPDATE, applyPresence);
 socket.on(EVENTS.ROOM_STATE, (room) => { if (state.room?.roomId === room.roomId) { state.room = room; route(); } });
 socket.on(EVENTS.CHAT_MESSAGE, (message) => {
   if (!state.room) return;
