@@ -42,3 +42,10 @@ test('closing one of a user\'s platform tabs keeps their other tab online', () =
   assert.equal(presence.disconnect(user, 'socket-b'), true);
   assert.equal(presence.list().length, 0);
 });
+
+test('an explicit game close removes its activity immediately', () => {
+  const presence = new PresenceService();
+  presence.touch({ userId: 'game-user', nickname: '게임 유저', avatar: '🦊' }, 'echo-words:PLAYING');
+  assert.equal(presence.remove('game-user'), true);
+  assert.deepEqual(presence.summary(), { total: 0, statuses: { platform: 0, lobby: 0, playing: 0, spectating: 0 }, games: {} });
+});

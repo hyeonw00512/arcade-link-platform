@@ -22,6 +22,7 @@ const toastNode = document.querySelector('#toast');
 const uiLayer = document.querySelector('#ui-layer');
 const socket = io({ autoConnect: true, reconnection: true, reconnectionDelayMax: 4000 });
 let liveRefreshTimer = null;
+let liveRoomsRequest = null;
 let uiAudioContext = null;
 
 function loadPreferences() {
@@ -506,13 +507,15 @@ async function resumeSession() {
     route();
     updateConnectionState();
     fetchLiveRooms();
-    fetchPresence().then(route);
+    fetchPresence();
   } catch (error) { toast(error.message); }
 }
 
 async function fetchLiveRooms() {
+  if (liveRoomsRequest) return liveRoomsRequest;
+  liveRoomsRequest = (async () => {
   try {
-    const response = await fetch('/api/live-rooms');
+    const response = await fetch('/api/live-rooms', { cache: 'no-store' });
     if (!response.ok) throw new Error();
     const nextRooms = await response.json();
     // Polling is a safety net. Avoid rebuilding the page when the received
@@ -522,8 +525,16 @@ async function fetchLiveRooms() {
     if (location.pathname === '/' && refreshHomeSection('#home-live-rooms', homeLiveRoomsSection())) return;
     route();
   } catch {
-    state.liveRooms = [];
+    // A transient network problem must not make the visible room list vanish.
+  } finally {
+    liveRoomsRequest = null;
   }
+  })();
+  return liveRoomsRequest;
+}
+
+function shouldRefreshLiveRooms() {
+  return location.pathname === '/' || location.pathname.startsWith('/games/');
 }
 
 function startLiveRefresh() {
@@ -531,12 +542,10 @@ function startLiveRefresh() {
   liveRefreshTimer = window.setInterval(() => {
     if (document.visibilityState === 'visible') {
       emit(EVENTS.PRESENCE_HEARTBEAT).catch(() => {});
-      fetchLiveRooms();
-      fetchPresence().then(() => {
-        if (location.pathname === '/') route();
-      });
+      if (shouldRefreshLiveRooms()) fetchLiveRooms();
+      fetchPresence();
     }
-  }, 30_000);
+  }, 15_000);
 }
 
 async function fetchPresence() {
@@ -577,7 +586,7 @@ applyPreferences();
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     emit(EVENTS.PRESENCE_HEARTBEAT).catch(() => {});
-    fetchLiveRooms();
-    fetchPresence().then(() => { if (location.pathname === '/') route(); });
+    if (shouldRefreshLiveRooms()) fetchLiveRooms();
+    fetchPresence();
   }
 });

@@ -56,8 +56,9 @@ app.post('/api/activity', (req, res) => {
   try {
     const payload = verifyActivityToken(req.body?.token, process.env.PLATFORM_JOIN_SECRET);
     const status = String(req.body?.status || 'LOBBY').toUpperCase();
-    if (!['LOBBY', 'PLAYING', 'SPECTATING'].includes(status)) throw new Error('활동 상태가 올바르지 않습니다.');
-    presence.touch(payload, `${payload.gameId}:${status}`);
+    if (!['LOBBY', 'PLAYING', 'SPECTATING', 'OFFLINE'].includes(status)) throw new Error('활동 상태가 올바르지 않습니다.');
+    if (status === 'OFFLINE') presence.remove(payload.userId);
+    else presence.touch(payload, `${payload.gameId}:${status}`);
     publishPresence();
     res.set('access-control-allow-origin', '*').json({ ok: true });
   } catch (error) { res.set('access-control-allow-origin', '*').status(400).json({ message: error.message }); }
