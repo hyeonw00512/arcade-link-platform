@@ -22,6 +22,9 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(84,240,189,.
 .app-shell { min-height: 100dvh; display: grid; grid-template-columns: 240px minmax(0, 1fr); }
 .sidebar { position: sticky; top: 0; height: 100dvh; padding: 28px 22px; border-right: 1px solid var(--line); background: rgba(5,14,26,.85); backdrop-filter: blur(18px); display: flex; flex-direction: column; }
 .brand { display: flex; align-items: center; gap: 11px; font: 700 1.2rem "Space Grotesk"; letter-spacing: -.02em; }
+.connection-state { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; color: var(--muted); font: 600 .62rem "Space Grotesk"; letter-spacing: .03em; white-space: nowrap; }
+.connection-state i { width: 7px; height: 7px; border-radius: 50%; background: #758394; }.connection-state.online { color: #a8d9c7; }.connection-state.online i { background: var(--mint); box-shadow: 0 0 9px var(--mint); }
+.mobile-connection { display: none; }
 .brand-mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 13px; background: var(--mint); color: #042017; box-shadow: 0 0 28px rgba(84,240,189,.25); }
 .nav { margin-top: 40px; display: grid; gap: 8px; }
 .nav-item { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 14px; color: var(--muted); text-decoration: none; font-size: 1rem; }
@@ -193,6 +196,7 @@ h3 { font-size: 1.15rem; margin-bottom: 8px; }
   .app-shell { display: block; }
   .sidebar { display: none; }
   .content { padding: 24px 20px calc(100px + env(safe-area-inset-bottom)); }
+  .mobile-connection { display: flex; justify-content: flex-end; margin-bottom: 10px; }.mobile-connection .connection-state { margin-left: 0; }
   .game-grid { grid-template-columns: repeat(2, 1fr); }
   .detail-layout, .lobby-grid { grid-template-columns: 1fr; }
   .quick-start { align-items: flex-start; flex-direction: column; }

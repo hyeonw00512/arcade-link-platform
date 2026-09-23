@@ -101,9 +101,10 @@ function escapeHtml(value = '') {
 
 function shell(content, active = 'home', theme = 'platform') {
   const session = state.session || { avatar: '◌', nickname: '연결 중' };
+  const connection = state.connected ? '<span class="connection-state online" data-connection-state><i></i>실시간 연결됨</span>' : '<span class="connection-state" data-connection-state><i></i>연결 확인 중</span>';
   return `
     <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">A</span> ARCADE LINK</div>
+      <div class="brand"><span class="brand-mark">A</span> ARCADE LINK ${connection}</div>
       <nav class="nav" aria-label="주 메뉴">
         <a href="/" data-link class="nav-item ${active === 'home' ? 'active' : ''}">⌂ 홈</a>
         <a href="#all-games" data-games-link class="nav-item ${active === 'games' ? 'active' : ''}">◇ 게임</a>
@@ -113,10 +114,17 @@ function shell(content, active = 'home', theme = 'platform') {
       </nav>
       <a class="sidebar-user" href="/profile" data-link aria-label="내 프로필 열기"><span class="avatar">${session.avatar}</span><div><strong>${escapeHtml(session.nickname)}</strong><div class="muted">게스트 플레이어 · 편집</div></div></a>
     </aside>
-    <main class="content theme-${escapeHtml(theme)}">${content}</main>
+    <main class="content theme-${escapeHtml(theme)}"><div class="mobile-connection">${connection}</div>${content}</main>
     <nav class="mobile-nav" aria-label="모바일 메뉴">
       <a href="/" data-link><span>⌂</span>홈</a><a href="#all-games" data-games-link><span>◇</span>게임</a><a href="#" data-open-settings><span>⚙</span>설정</a><a href="/profile" data-link class="${active === 'profile' ? 'active' : ''}"><span>${session.avatar}</span>내 정보</a>
     </nav>`;
+}
+
+function updateConnectionState() {
+  document.querySelectorAll('[data-connection-state]').forEach((node) => {
+    node.classList.toggle('online', state.connected);
+    node.innerHTML = `<i></i>${state.connected ? '실시간 연결됨' : '연결 확인 중'}`;
+  });
 }
 
 function gameCard(game) {
@@ -496,6 +504,7 @@ async function resumeSession() {
     state.session = response.session; state.games = response.games; state.room = response.room; state.connected = true; state.needsNickname = !saved?.sessionToken;
     localStorage.setItem('arcade-link-session', JSON.stringify(response.session));
     route();
+    updateConnectionState();
     fetchLiveRooms();
     fetchPresence().then(route);
   } catch (error) { toast(error.message); }
@@ -550,7 +559,11 @@ function applyPresence(payload) {
 }
 
 socket.on('connect', () => { resumeSession(); startLiveRefresh(); });
-socket.on('disconnect', () => { state.connected = false; toast('연결이 끊겼습니다. 자동으로 다시 연결합니다.'); });
+socket.on('disconnect', () => {
+  state.connected = false;
+  updateConnectionState();
+  toast('연결이 끊겼습니다. 자동으로 다시 연결합니다.');
+});
 socket.on(EVENTS.PRESENCE_UPDATE, applyPresence);
 socket.on(EVENTS.ROOM_STATE, (room) => { if (state.room?.roomId === room.roomId) { state.room = room; route(); } });
 socket.on(EVENTS.CHAT_MESSAGE, (message) => {
