@@ -24,7 +24,7 @@ npm start
 - PC/모바일 반응형 UI와 safe-area 대응
 - 서버 authoritative 검증 및 간단한 요청 속도 제한
 
-개발용 환경에서는 게스트 세션과 플랫폼 방 상태를 `data/platform-state.json`에 저장합니다. Render 무료 인스턴스의 파일 저장소는 재시작 시 초기화될 수 있으므로, 운영에서 플랫폼 자체 방 기능을 유지하려면 PostgreSQL/Redis 같은 외부 저장소로 교체해야 합니다. 게임 허브와 공개 방 목록 기능은 각 게임 서버의 API를 읽는 방식이라 별도로 동작합니다.
+개발용 환경에서는 게스트 세션과 플랫폼 방 상태를 `data/platform-state.json`에 저장합니다. 운영에서는 `DATABASE_URL`에 Neon, Supabase 또는 Render PostgreSQL 연결 문자열을 넣으면 동일한 프로필·세션·플랫폼 방 데이터가 PostgreSQL에 자동 저장되어 Render 재시작 뒤에도 유지됩니다. `DATABASE_URL`이 비어 있으면 기존 JSON 저장을 계속 사용합니다. 게임 허브와 공개 방 목록 기능은 각 게임 서버의 API를 읽는 방식이라 별도로 동작합니다.
 
 ## 새 게임 등록
 
