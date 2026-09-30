@@ -49,3 +49,13 @@ test('guest profile only accepts a valid nickname and avatar', () => {
   assert.throws(() => sessions.updateProfile(session.sessionToken, { nickname: '', avatar: '🦄' }), /닉네임/);
   assert.throws(() => sessions.updateProfile(session.sessionToken, { nickname: '이름', avatar: '❌' }), /아바타/);
 });
+
+test('guest nicknames are unique regardless of casing or extra spaces', () => {
+  const sessions = new SessionStore();
+  const first = sessions.create('Arcade Link');
+  const second = sessions.create();
+
+  assert.throws(() => sessions.create(' arcade   link '), /이미 사용 중/);
+  assert.throws(() => sessions.updateProfile(second.sessionToken, { nickname: 'ARCADE LINK', avatar: '🦊' }), /이미 사용 중/);
+  assert.doesNotThrow(() => sessions.updateProfile(first.sessionToken, { nickname: 'Arcade Link', avatar: '🐼' }));
+});

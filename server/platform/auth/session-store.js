@@ -15,10 +15,12 @@ export class SessionStore {
 
   create(nickname) {
     const userId = crypto.randomUUID();
+    const requestedNickname = this.cleanNickname(nickname);
+    if (requestedNickname) this.assertNicknameAvailable(requestedNickname);
     const session = {
       userId,
       sessionToken: crypto.randomBytes(32).toString('base64url'),
-      nickname: this.cleanNickname(nickname) || this.randomNickname(),
+      nickname: requestedNickname || this.randomNickname(),
       avatar: AVATARS[Math.floor(Math.random() * AVATARS.length)],
       roomId: null,
       expiresAt: Date.now() + this.ttlMs
@@ -53,6 +55,7 @@ export class SessionStore {
     const cleanNickname = this.cleanNickname(nickname);
     if (!cleanNickname) throw new Error('닉네임을 1자 이상 입력해 주세요.');
     if (!AVATARS.includes(avatar)) throw new Error('선택할 수 없는 아바타입니다.');
+    this.assertNicknameAvailable(cleanNickname, session.sessionToken);
     session.nickname = cleanNickname;
     session.avatar = avatar;
     this.persist();
@@ -73,10 +76,33 @@ export class SessionStore {
     return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, 16) : '';
   }
 
+  nicknameKey(nickname) {
+    return this.cleanNickname(nickname).normalize('NFC').toLocaleLowerCase('ko-KR');
+  }
+
+  assertNicknameAvailable(nickname, currentToken = null) {
+    const key = this.nicknameKey(nickname);
+    const now = Date.now();
+    const alreadyUsed = [...this.sessions.entries()].some(([token, session]) =>
+      token !== currentToken && session.expiresAt > now && this.nicknameKey(session.nickname) === key
+    );
+    if (alreadyUsed) throw new Error('이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해 주세요.');
+  }
+
   randomNickname() {
-    const adjective = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
-    const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
-    return `${adjective} ${noun}`;
+    // Guest sessions created before the welcome prompt still need a unique
+    // visible name, so a short discriminator is included from the beginning.
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const adjective = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+      const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+      const candidate = `${adjective} ${noun} ${crypto.randomInt(1000, 10000)}`;
+      try {
+        this.assertNicknameAvailable(candidate);
+        return candidate;
+      } catch { /* Try another generated nickname. */ }
+    }
+    // UUID suffix makes a collision practically impossible even under load.
+    return `플레이어 ${crypto.randomUUID().slice(0, 8)}`;
   }
 
   exportState() {
