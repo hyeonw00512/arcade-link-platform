@@ -88,7 +88,7 @@
   },
   {
     "id": "mystery-manor",
-    "name": "흑야 저택",
+    "name": "저택 추리 (Clue)",
     "description": "용의자와 장소, 도구를 추리해 저택의 사건을 해결하는 실시간 미스터리 게임입니다.",
     "thumbnail": "clue",
     "minPlayers": 3,
